@@ -34,8 +34,6 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
         roughness: 0.9, 
         bumpScale: 0.1 
     }), []);
-    
-    const ambientLightColor = useMemo(() => "#ffffff", []);
 
     const handleRadialSelect = (type: LinkType) => {
         if (radialMenu) {
@@ -117,7 +115,7 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
 
             {/* Light for the board (Vignette effect simulated by point light close to surface) */}
             {/* <pointLight position={[0, 0, 4]} intensity={60} distance={15} decay={2} color="#fff8e7" /> */}
-            <ambientLight intensity={0.4} color={ambientLightColor} />
+            <ambientLight intensity={0.4} color="#ffffff" />
 
             {/* Verify Switch */}
             <VerifySwitch

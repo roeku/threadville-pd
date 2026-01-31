@@ -129,14 +129,23 @@ const getSharedShaderMaterial = () => {
 };
 
 // Single manager component to update time uniform once per frame
-let timeManagerMounted = false;
-const WindowTimeManager = () => {
-    useFrame((state) => {
-        // Update global time once per frame - all panels use this uniform
-        globalTimeUniform.value = state.clock.getElapsedTime();
-    });
-    return null;
-};
+// PERFORMANCE: Use a singleton pattern to ensure only one manager exists
+const WindowTimeManager = (() => {
+    let instance: (() => null) | null = null;
+    
+    return () => {
+        if (!instance) {
+            instance = () => {
+                useFrame((state) => {
+                    // Update global time once per frame - all panels use this uniform
+                    globalTimeUniform.value = state.clock.getElapsedTime();
+                });
+                return null;
+            };
+        }
+        return instance();
+    };
+})();
 
 const WindowPanelComponent = ({ position, rotation, width = 3, height = 4 }: { position: [number, number, number], rotation?: [number, number, number], width?: number, height?: number }) => {
     const meshRef = useRef<THREE.Mesh>(null);
@@ -179,8 +188,8 @@ const WindowPanelComponent = ({ position, rotation, width = 3, height = 4 }: { p
                 <primitive object={frameMaterial} attach="material" />
             </mesh>
             
-            {/* Mount time manager only once */}
-            {!timeManagerMounted && (() => { timeManagerMounted = true; return <WindowTimeManager />; })()}
+            {/* Mount time manager in first panel only */}
+            <WindowTimeManager />
         </group>
     );
 };

@@ -141,7 +141,7 @@ const CityBackdrop = () => {
   }), [texture]);
 
   return (
-    <mesh position={[0, 0, 0]} rotation={[0, Math.PI, 0]} frustumCulled={false}>
+    <mesh position={[0, 0, 0]} rotation={[0, Math.PI, 0]} frustumCulled>
       {/* Cylinder wraps around the scene - openEnded means no top/bottom caps */}
       <cylinderGeometry args={[
         16,      // radius top
@@ -170,7 +170,7 @@ const DeskLighting = () => (
 const OfficeEnvironment = ({ debugParams }: { debugParams: any }) => {
   // PERFORMANCE: Memoize geometry and materials to avoid recreation
   const planeGeometry = useMemo(() => new THREE.PlaneGeometry(14, 10), []);
-  const wallGeometry = useMemo(() => new THREE.PlaneGeometry(14, 4.5), []);
+  const wallGeometry = useMemo(() => new THREE.PlaneGeometry(10, 4.5), []);
   const smallWallGeometry = useMemo(() => new THREE.PlaneGeometry(4, 4.5), []);
   
   const floorMaterial = useMemo(() => new THREE.MeshStandardMaterial({
@@ -213,13 +213,13 @@ const OfficeEnvironment = ({ debugParams }: { debugParams: any }) => {
 
       {/* Left wall - Dark evening */}
       <mesh position={[-6, 2, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow frustumCulled>
-        <planeGeometry args={[10, 4.5]} />
+        <primitive object={wallGeometry} attach="geometry" />
         <primitive object={wallMaterial} attach="material" />
       </mesh>
 
       {/* Right wall - Dark evening */}
       <mesh position={[6, 2, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow frustumCulled>
-        <planeGeometry args={[10, 4.5]} />
+        <primitive object={wallGeometry} attach="geometry" />
         <primitive object={wallMaterial} attach="material" />
       </mesh>
 

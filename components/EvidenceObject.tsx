@@ -13,20 +13,22 @@ import { getTemplateForEvidence } from '../services/templateManager';
 const DeductionPin = React.memo(({ onClick, visible }: { onClick: (e: any) => void, visible: boolean }) => {
   const [hover, setHover] = useState(false);
   
-  // PERFORMANCE: Memoize materials
-  const normalMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+  // PERFORMANCE: Single material that we update instead of switching
+  const material = useMemo(() => new THREE.MeshStandardMaterial({
     color: "#aa0000",
     emissive: "#ff0000",
     emissiveIntensity: 0,
     side: THREE.DoubleSide,
   }), []);
   
-  const hoverMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#ff4444",
-    emissive: "#ff0000",
-    emissiveIntensity: 0.5,
-    side: THREE.DoubleSide,
-  }), []);
+  // Update material properties on hover instead of switching materials
+  useEffect(() => {
+    if (material) {
+      material.color.setHex(hover ? 0xff4444 : 0xaa0000);
+      material.emissiveIntensity = hover ? 0.5 : 0;
+      material.needsUpdate = true;
+    }
+  }, [hover, material]);
   
   return (
     <group visible={visible}>
@@ -40,7 +42,7 @@ const DeductionPin = React.memo(({ onClick, visible }: { onClick: (e: any) => vo
         frustumCulled
       >
         <sphereGeometry args={[0.015]} />
-        <primitive object={hover ? hoverMaterial : normalMaterial} attach="material" />
+        <primitive object={material} attach="material" />
       </mesh>
       {/* Interaction Zone - larger */}
       <mesh position={[0, 0, 0]} visible={false} onClick={(e) => { e.stopPropagation(); onClick(e); }} onPointerDown={(e) => { e.stopPropagation(); }}>
@@ -454,10 +456,19 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
     roughness: 0.5,
   }), []);
   
+  // PERFORMANCE: Single wireframe material that we update instead of recreating
   const borderWireframeMaterial = useMemo(() => new THREE.MeshBasicMaterial({
     color: borderColor,
     wireframe: true,
-  }), [borderColor]);
+  }), []);
+  
+  // Update border material color on hover instead of recreating material
+  useEffect(() => {
+    if (borderWireframeMaterial) {
+      borderWireframeMaterial.color.setHex(hovered ? 0xff9900 : 0x222222);
+      borderWireframeMaterial.needsUpdate = true;
+    }
+  }, [hovered, borderWireframeMaterial]);
 
   useEffect(() => {
     if (isNewSystem) {
