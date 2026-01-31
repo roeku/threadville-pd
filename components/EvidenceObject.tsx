@@ -10,8 +10,24 @@ import { EvidenceItem, EvidenceType } from '../types';
 import { renderDocumentToTexture } from '../services/document-rendering/renderDocument';
 import { getTemplateForEvidence } from '../services/templateManager';
 
-const DeductionPin = ({ onClick, visible }: { onClick: (e: any) => void, visible: boolean }) => {
+const DeductionPin = React.memo(({ onClick, visible }: { onClick: (e: any) => void, visible: boolean }) => {
   const [hover, setHover] = useState(false);
+  
+  // PERFORMANCE: Memoize materials
+  const normalMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: "#aa0000",
+    emissive: "#ff0000",
+    emissiveIntensity: 0,
+    side: THREE.DoubleSide,
+  }), []);
+  
+  const hoverMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: "#ff4444",
+    emissive: "#ff0000",
+    emissiveIntensity: 0.5,
+    side: THREE.DoubleSide,
+  }), []);
+  
   return (
     <group visible={visible}>
       <mesh
@@ -21,22 +37,18 @@ const DeductionPin = ({ onClick, visible }: { onClick: (e: any) => void, visible
         onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = 'crosshair'; }}
         onPointerOut={(e) => { e.stopPropagation(); setHover(false); document.body.style.cursor = 'auto'; }}
         scale={hover ? 1.5 : 1}
+        frustumCulled
       >
         <sphereGeometry args={[0.015]} />
-        <meshStandardMaterial
-          color={hover ? "#ff4444" : "#aa0000"}
-          emissive="#ff0000"
-          emissiveIntensity={hover ? 0.5 : 0}
-          side={THREE.DoubleSide}
-        />
+        <primitive object={hover ? hoverMaterial : normalMaterial} attach="material" />
       </mesh>
       {/* Interaction Zone - larger */}
       <mesh position={[0, 0, 0]} visible={false} onClick={(e) => { e.stopPropagation(); onClick(e); }} onPointerDown={(e) => { e.stopPropagation(); }}>
         <sphereGeometry args={[0.05]} />
       </mesh>
     </group>
-  )
-}
+  );
+});
 
 interface EvidenceObjectProps {
   item: EvidenceItem;
@@ -88,6 +100,9 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
 
   useFrame((state, delta) => {
     if (!rigidBody.current) return;
+
+    // PERFORMANCE: Early exit if not in any active state
+    if (!isFocused && !isDragging) return;
 
     if (isFocused) {
       // Focus Mode: Smoothly move to front of camera
@@ -426,6 +441,23 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
   const documentStates = useGameStore(state => state.documentStates);
   const setDocumentTotalPages = useGameStore(state => state.setDocumentTotalPages);
   const currentPage = documentStates[item.id]?.currentPage || 0;
+  
+  // PERFORMANCE: Memoize materials to avoid recreation on every render
+  const paperBaseMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: "#fdfdfd",
+    roughness: 0.9,
+    metalness: 0,
+  }), []);
+  
+  const photoBaseMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: "#fff",
+    roughness: 0.5,
+  }), []);
+  
+  const borderWireframeMaterial = useMemo(() => new THREE.MeshBasicMaterial({
+    color: borderColor,
+    wireframe: true,
+  }), [borderColor]);
 
   useEffect(() => {
     if (isNewSystem) {
@@ -526,13 +558,9 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
         {item.type === EvidenceType.PAPER && (
           <group>
             {/* Base Paper Block (Physical Body) */}
-            <mesh castShadow receiveShadow>
+            <mesh castShadow receiveShadow frustumCulled>
               <boxGeometry args={[paperWidth, 0.002, paperHeight]} />
-              <meshStandardMaterial
-                color="#fdfdfd"
-                roughness={0.9}
-                metalness={0}
-              />
+              <primitive object={paperBaseMaterial} attach="material" />
             </mesh>
 
             {/* Document Content Plane (Decal on Top) */}
@@ -541,6 +569,7 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
                 position={[0, 0.0011, 0]}
                 rotation={[-Math.PI / 2, 0, 0]}
                 receiveShadow
+                frustumCulled
               >
                 <planeGeometry args={[paperWidth, paperHeight]} />
                 <meshStandardMaterial
@@ -555,15 +584,15 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
 
             {/* Outline on hover */}
             {hovered && (
-              <mesh position={[0, 0, 0]}>
+              <mesh position={[0, 0, 0]} frustumCulled>
                 <boxGeometry args={[paperWidth + 0.01, 0.001, paperHeight + 0.01]} />
-                <meshBasicMaterial color={borderColor} wireframe />
+                <primitive object={borderWireframeMaterial} attach="material" />
               </mesh>
             )}
 
-            <mesh position={[0, 0, 0]}>
+            <mesh position={[0, 0, 0]} frustumCulled>
               <boxGeometry args={[paperWidth + 0.01, 0.001, paperHeight + 0.01]} />
-              <meshBasicMaterial color={borderColor} wireframe />
+              <primitive object={borderWireframeMaterial} attach="material" />
             </mesh>
 
             <group position={[0, 0, -paperHeight / 2 + 0.02]}>
@@ -586,15 +615,15 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
         {item.type === EvidenceType.PHOTO && (
           <group>
             {/* Photo Border */}
-            <mesh castShadow receiveShadow>
+            <mesh castShadow receiveShadow frustumCulled>
               <boxGeometry args={[0.15, 0.002, 0.18]} />
-              <meshStandardMaterial color="#fff" roughness={0.5} />
+              <primitive object={photoBaseMaterial} attach="material" />
             </mesh>
             {/* Outline */}
             {hovered && (
-              <mesh position={[0, 0, 0]}>
+              <mesh position={[0, 0, 0]} frustumCulled>
                 <boxGeometry args={[0.16, 0.001, 0.19]} />
-                <meshBasicMaterial color={borderColor} wireframe />
+                <primitive object={borderWireframeMaterial} attach="material" />
               </mesh>
             )}
             {/* Photo Image */}

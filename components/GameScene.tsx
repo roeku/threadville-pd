@@ -49,19 +49,30 @@ interface GameSceneProps {
   caseFile: CaseFile | null;
 }
 
-const CaseFolder = ({ title, briefing, caseId }: { title: string, briefing: string, caseId: string }) => (
-  <RigidBody colliders="cuboid" type="dynamic" position={[0.5, 1, 1.2]} rotation={[0, -0.2, 0]}>
-    <group>
-      {/* Folder Base */}
-      <mesh castShadow receiveShadow>
-        <boxGeometry args={[0.3, 0.02, 0.4]} />
-        <meshStandardMaterial color="#c2a47e" roughness={0.8} />
-      </mesh>
-      {/* Paper Inside */}
-      <mesh position={[0, 0.015, 0]}>
-        <boxGeometry args={[0.28, 0.001, 0.38]} />
-        <meshStandardMaterial color="#f0f0e0" />
-      </mesh>
+const CaseFolder = ({ title, briefing, caseId }: { title: string, briefing: string, caseId: string }) => {
+  // PERFORMANCE: Memoize materials
+  const folderMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#c2a47e", 
+    roughness: 0.8 
+  }), []);
+  
+  const paperMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: "#f0f0e0" 
+  }), []);
+
+  return (
+    <RigidBody colliders="cuboid" type="dynamic" position={[0.5, 1, 1.2]} rotation={[0, -0.2, 0]}>
+      <group>
+        {/* Folder Base */}
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[0.3, 0.02, 0.4]} />
+          <primitive object={folderMaterial} attach="material" />
+        </mesh>
+        {/* Paper Inside */}
+        <mesh position={[0, 0.015, 0]}>
+          <boxGeometry args={[0.28, 0.001, 0.38]} />
+          <primitive object={paperMaterial} attach="material" />
+        </mesh>
       {/* Text Context */}
       <Html
         transform
@@ -88,7 +99,7 @@ const CaseFolder = ({ title, briefing, caseId }: { title: string, briefing: stri
       </Html>
     </group>
   </RigidBody>
-);
+)};
 
 const Desk = ({ currentCase }: { currentCase: any }) => {
   const addToPrintQueue = useGameStore(state => state.addToPrintQueue);
@@ -112,12 +123,25 @@ const Desk = ({ currentCase }: { currentCase: any }) => {
 
 const CityBackdrop = () => {
   const texture = useTexture('/bg.jpg');
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = THREE.RepeatWrapping; // Allow wrapping around cylinder
-  texture.wrapT = THREE.ClampToEdgeWrapping;
+  
+  // PERFORMANCE: Memoize texture setup
+  useMemo(() => {
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+  }, [texture]);
+  
+  // PERFORMANCE: Memoize material
+  const material = useMemo(() => new THREE.MeshBasicMaterial({
+    map: texture,
+    side: THREE.BackSide,
+    toneMapped: false,
+    fog: false,
+    depthWrite: false,
+  }), [texture]);
 
   return (
-    <mesh position={[0, 0, 0]} rotation={[0, Math.PI, 0]}>
+    <mesh position={[0, 0, 0]} rotation={[0, Math.PI, 0]} frustumCulled={false}>
       {/* Cylinder wraps around the scene - openEnded means no top/bottom caps */}
       <cylinderGeometry args={[
         16,      // radius top
@@ -127,13 +151,7 @@ const CityBackdrop = () => {
         2,       // height segments
         true     // openEnded (no caps)
       ]} />
-      <meshBasicMaterial
-        map={texture}
-        side={THREE.BackSide}  // Render inside the cylinder
-        toneMapped={false}
-        fog={false}
-        depthWrite={false}
-      />
+      <primitive object={material} attach="material" />
     </mesh>
   );
 };
@@ -150,76 +168,65 @@ const DeskLighting = () => (
 
 
 const OfficeEnvironment = ({ debugParams }: { debugParams: any }) => {
+  // PERFORMANCE: Memoize geometry and materials to avoid recreation
+  const planeGeometry = useMemo(() => new THREE.PlaneGeometry(14, 10), []);
+  const wallGeometry = useMemo(() => new THREE.PlaneGeometry(14, 4.5), []);
+  const smallWallGeometry = useMemo(() => new THREE.PlaneGeometry(4, 4.5), []);
+  
+  const floorMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: "#1a1a1a",
+    roughness: 0.7,
+    metalness: 0,
+  }), []);
+  
+  const wallMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: "#151f2f",
+    roughness: 0.95,
+    metalness: 0,
+  }), []);
+  
+  const ceilingMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: "#000000",
+    roughness: 0.9,
+    metalness: 0,
+  }), []);
+
   return (
     <>
       {/* Floor - Dark evening office */}
-      <mesh position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[14, 10]} />
-        <meshStandardMaterial
-          color="#1a1a1a"
-          roughness={0.7}
-          metalness={0}
-        />
+      <mesh position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow frustumCulled>
+        <primitive object={planeGeometry} attach="geometry" />
+        <primitive object={floorMaterial} attach="material" />
       </mesh>
 
-      {/* Back wall - Evening building/cityscape */}
-      {/* <mesh position={[0, 2, 3.5]} receiveShadow>
-        <planeGeometry args={[14, 4.5]} />
-        <meshStandardMaterial
-          color="#0f1a2e"
-          roughness={0.95}
-          metalness={0}
-        />
-      </mesh> */}
-
       {/* Back wall (left) - Dark evening */}
-      <mesh position={[-5, 2, 2.5]} rotation={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[4, 4.5]} />
-        <meshStandardMaterial
-          color="#151f2f"
-          roughness={0.95}
-          metalness={0}
-        />
+      <mesh position={[-5, 2, 2.5]} rotation={[0, 0, 0]} receiveShadow frustumCulled>
+        <primitive object={smallWallGeometry} attach="geometry" />
+        <primitive object={wallMaterial} attach="material" />
       </mesh>
 
       {/* Back wall (right) - Dark evening */}
-      <mesh position={[5, 2, 2.5]} rotation={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[4, 4.5]} />
-        <meshStandardMaterial
-          color="#151f2f"
-          roughness={0.95}
-          metalness={0}
-        />
+      <mesh position={[5, 2, 2.5]} rotation={[0, 0, 0]} receiveShadow frustumCulled>
+        <primitive object={smallWallGeometry} attach="geometry" />
+        <primitive object={wallMaterial} attach="material" />
       </mesh>
 
       {/* Left wall - Dark evening */}
-      <mesh position={[-6, 2, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+      <mesh position={[-6, 2, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow frustumCulled>
         <planeGeometry args={[10, 4.5]} />
-        <meshStandardMaterial
-          color="#151f2f"
-          roughness={0.95}
-          metalness={0}
-        />
+        <primitive object={wallMaterial} attach="material" />
       </mesh>
 
       {/* Right wall - Dark evening */}
-      <mesh position={[6, 2, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
+      <mesh position={[6, 2, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow frustumCulled>
         <planeGeometry args={[10, 4.5]} />
-        <meshStandardMaterial
-          color="#151f2f"
-          roughness={0.95}
-          metalness={0}
-        />
+        <primitive object={wallMaterial} attach="material" />
       </mesh>
 
       {/* Ceiling - Dark evening */}
-      <mesh position={[0, 4.5, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[14, 10]} />
-        <meshStandardMaterial
-          color="#000000"
-          roughness={0.9}
-          metalness={0}
-        />
+      <mesh position={[0, 4.5, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow frustumCulled>
+        <primitive object={planeGeometry} attach="geometry" />
+        <primitive object={ceilingMaterial} attach="material" />
       </mesh>
     </>
   );

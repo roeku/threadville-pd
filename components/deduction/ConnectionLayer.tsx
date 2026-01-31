@@ -46,6 +46,10 @@ const SingleConnection = ({ conn, itemRefs, evidence, parentRef }: { conn: Evide
     const startVec = useMemo(() => new THREE.Vector3(), []);
     const endVec = useMemo(() => new THREE.Vector3(), []);
     const midVec = useMemo(() => new THREE.Vector3(), []);
+    
+    // PERFORMANCE: Cache last positions to avoid unnecessary updates
+    const lastPositions = useRef({ start: new THREE.Vector3(), end: new THREE.Vector3() });
+    const updateThreshold = 0.001; // Only update if items moved more than this
 
     const fromItem = useMemo(() => evidence.find(e => e.id === conn.fromId), [evidence, conn.fromId]);
     const toItem = useMemo(() => evidence.find(e => e.id === conn.toId), [evidence, conn.toId]);
@@ -85,6 +89,23 @@ const SingleConnection = ({ conn, itemRefs, evidence, parentRef }: { conn: Evide
         if (startBody && endBody) {
             const p1 = startBody.translation();
             const p2 = endBody.translation();
+            
+            // PERFORMANCE: Skip update if items haven't moved significantly
+            const moved = (
+                Math.abs(p1.x - lastPositions.current.start.x) > updateThreshold ||
+                Math.abs(p1.y - lastPositions.current.start.y) > updateThreshold ||
+                Math.abs(p1.z - lastPositions.current.start.z) > updateThreshold ||
+                Math.abs(p2.x - lastPositions.current.end.x) > updateThreshold ||
+                Math.abs(p2.y - lastPositions.current.end.y) > updateThreshold ||
+                Math.abs(p2.z - lastPositions.current.end.z) > updateThreshold
+            );
+            
+            if (!moved) return;
+            
+            // Update cached positions
+            lastPositions.current.start.set(p1.x, p1.y, p1.z);
+            lastPositions.current.end.set(p2.x, p2.y, p2.z);
+            
             const r1 = startBody.rotation();
             const r2 = endBody.rotation();
 

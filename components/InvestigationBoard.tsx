@@ -27,6 +27,15 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
     } = useGameStore();
 
     const { pointer, camera, raycaster } = useThree();
+    
+    // PERFORMANCE: Memoize materials
+    const corkMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
+        color: "#d2b48c", 
+        roughness: 0.9, 
+        bumpScale: 0.1 
+    }), []);
+    
+    const ambientLightColor = useMemo(() => "#ffffff", []);
 
     const handleRadialSelect = (type: LinkType) => {
         if (radialMenu) {
@@ -95,20 +104,20 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
             {/* Board Physical Body */}
             <RigidBody type="fixed" colliders="cuboid">
                 {/* Corkboard Surface */}
-                <mesh receiveShadow onClick={handleBoardClick}>
+                <mesh receiveShadow onClick={handleBoardClick} frustumCulled>
                     <boxGeometry args={[10, 6, 0.2]} />
-                    <meshStandardMaterial color="#d2b48c" roughness={0.9} bumpScale={0.1} />
+                    <primitive object={corkMaterial} attach="material" />
                 </mesh>
 
                 {/* Frame */}
-                <mesh position={[0, 0, -0.15]}>
+                <mesh position={[0, 0, -0.15]} frustumCulled>
                     <RoundedBox args={[10.5, 6.5, 0.1]} material-color="#5d4037" />
                 </mesh>
             </RigidBody>
 
             {/* Light for the board (Vignette effect simulated by point light close to surface) */}
             {/* <pointLight position={[0, 0, 4]} intensity={60} distance={15} decay={2} color="#fff8e7" /> */}
-            <ambientLight intensity={0.4} color="#ffffff" />
+            <ambientLight intensity={0.4} color={ambientLightColor} />
 
             {/* Verify Switch */}
             <VerifySwitch

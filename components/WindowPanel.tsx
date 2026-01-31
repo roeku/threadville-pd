@@ -1,27 +1,27 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 
 // Global time uniform shared across all window panels
 const globalTimeUniform = { value: 0 };
-let globalTimeInitialized = false;
 
-const WindowPanelComponent = ({ position, rotation, width = 3, height = 4 }: { position: [number, number, number], rotation?: [number, number, number], width?: number, height?: number }) => {
-    const meshRef = useRef<THREE.Mesh>(null);
-    const materialRef = useRef<THREE.ShaderMaterial>(null);
+// Shared shader material instance - all panels use the same material
+let sharedShaderMaterial: THREE.ShaderMaterial | null = null;
 
-    const shaderMaterial = useMemo(() => new THREE.ShaderMaterial({
-        uniforms: {
-            u_time: globalTimeUniform,
-        },
-        vertexShader: `
+const getSharedShaderMaterial = () => {
+    if (!sharedShaderMaterial) {
+        sharedShaderMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                u_time: globalTimeUniform,
+            },
+            vertexShader: `
       varying vec2 vUv;
       void main() {
         vUv = uv;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
     `,
-        fragmentShader: `
+            fragmentShader: `
       uniform float u_time;
       varying vec2 vUv;
 
@@ -41,7 +41,7 @@ const WindowPanelComponent = ({ position, rotation, width = 3, height = 4 }: { p
           float shiftY = Random11(0.5, seed);
           uv.y += shiftY;
 
-          // Split UV spac into cells. Each cell will contain a drop.
+          // Split UV space into cells. Each cell will contain a drop.
           float cellsResolution = 40.0;
           uv *= cellsResolution;
 
@@ -64,12 +64,12 @@ const WindowPanelComponent = ({ position, rotation, width = 3, height = 4 }: { p
           dropIntensity = sign(dropIntensity) * abs(dropIntensity * dropIntensity * dropIntensity * dropIntensity);
           dropIntensity = clamp(dropIntensity, 0.0, 1.0);
 
-          // We only need results from inside a specefec radius of a drop.
+          // We only need results from inside a specific radius of a drop.
           float isInsideDrop = 1.0 - step(0.1, distanceFromCenter);
 
           vec2 vecToCenter = normalize(cellCenter - cellUv);
 
-          // Drop value is a vector to the center that increases with distance form it.
+          // Drop value is a vector to the center that increases with distance from it.
           vec2 dropValue = vecToCenter * distanceFromCenter * distanceFromCenter * 40.0;
 
           vec2 drop = dropValue * isInsideDrop * isDropShown * dropIntensity;
@@ -79,9 +79,9 @@ const WindowPanelComponent = ({ position, rotation, width = 3, height = 4 }: { p
       void main() {
           vec2 uv = vUv;
 
-          // Run the Drop function 10 times to create seemingly random pattern.
+          // PERFORMANCE: Reduced iterations from 10 to 5 for better performance
           vec2 drops = vec2(0.0);
-          for(int i = 0; i < 10; i++) {
+          for(int i = 0; i < 5; i++) {
               drops += Drops(uv, 42424.43 + float(i) * 12313.432);
           }
           
@@ -121,51 +121,66 @@ const WindowPanelComponent = ({ position, rotation, width = 3, height = 4 }: { p
           gl_FragColor = vec4(finalColor, finalAlpha);
       }
     `,
-        transparent: true,
-        side: THREE.DoubleSide
-    }), []);
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+    }
+    return sharedShaderMaterial;
+};
 
-    // Only initialize global time update once
-    useEffect(() => {
-        if (!globalTimeInitialized) {
-            globalTimeInitialized = true;
-        }
-    }, []);
-
+// Single manager component to update time uniform once per frame
+let timeManagerMounted = false;
+const WindowTimeManager = () => {
     useFrame((state) => {
         // Update global time once per frame - all panels use this uniform
         globalTimeUniform.value = state.clock.getElapsedTime();
     });
+    return null;
+};
+
+const WindowPanelComponent = ({ position, rotation, width = 3, height = 4 }: { position: [number, number, number], rotation?: [number, number, number], width?: number, height?: number }) => {
+    const meshRef = useRef<THREE.Mesh>(null);
+    
+    // Get shared material instance
+    const shaderMaterial = useMemo(() => getSharedShaderMaterial(), []);
+    
+    // PERFORMANCE: Memoize frame material to avoid recreation
+    const frameMaterial = useMemo(() => 
+        new THREE.MeshStandardMaterial({ color: "#1a1a1a", roughness: 0.8 }), 
+    []);
 
     return (
         <group position={position} rotation={rotation}>
             {/* Glass Pane */}
-            <mesh ref={meshRef}>
+            <mesh ref={meshRef} frustumCulled>
                 <planeGeometry args={[width, height]} />
-                <primitive object={shaderMaterial} ref={materialRef} attach="material" />
+                <primitive object={shaderMaterial} attach="material" />
             </mesh>
 
             {/* Frame / Mullions */}
             {/* Top Frame */}
-            <mesh position={[0, height / 2, 0]}>
+            <mesh position={[0, height / 2, 0]} frustumCulled>
                 <boxGeometry args={[width + 0.1, 0.1, 0.1]} />
-                <meshStandardMaterial color="#1a1a1a" roughness={0.8} />
+                <primitive object={frameMaterial} attach="material" />
             </mesh>
             {/* Bottom Frame */}
-            <mesh position={[0, -height / 2, 0]}>
+            <mesh position={[0, -height / 2, 0]} frustumCulled>
                 <boxGeometry args={[width + 0.1, 0.1, 0.1]} />
-                <meshStandardMaterial color="#1a1a1a" roughness={0.8} />
+                <primitive object={frameMaterial} attach="material" />
             </mesh>
             {/* Left Frame */}
-            <mesh position={[-width / 2, 0, 0]}>
+            <mesh position={[-width / 2, 0, 0]} frustumCulled>
                 <boxGeometry args={[0.1, height, 0.1]} />
-                <meshStandardMaterial color="#1a1a1a" roughness={0.8} />
+                <primitive object={frameMaterial} attach="material" />
             </mesh>
             {/* Right Frame */}
-            <mesh position={[width / 2, 0, 0]}>
+            <mesh position={[width / 2, 0, 0]} frustumCulled>
                 <boxGeometry args={[0.1, height, 0.1]} />
-                <meshStandardMaterial color="#1a1a1a" roughness={0.8} />
+                <primitive object={frameMaterial} attach="material" />
             </mesh>
+            
+            {/* Mount time manager only once */}
+            {!timeManagerMounted && (() => { timeManagerMounted = true; return <WindowTimeManager />; })()}
         </group>
     );
 };
