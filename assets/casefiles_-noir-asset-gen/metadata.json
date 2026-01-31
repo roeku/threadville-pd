@@ -1,0 +1,5 @@
+{
+  "name": "CaseFiles: Noir Asset Gen",
+  "description": "A procedural asset generation tool for Neo-Noir detective games using Gemini 2.5 Flash Image. Features automated prompt construction based on case data and natural language image editing.",
+  "requestFramePermissions": []
+}

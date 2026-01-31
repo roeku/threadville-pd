@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .font-typewriter {
+    font-family: 'Courier New', Courier, monospace;
+  }
+}

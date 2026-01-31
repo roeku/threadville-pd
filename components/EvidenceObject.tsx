@@ -1,0 +1,641 @@
+import { useGameStore } from '../stores/useGameStore';
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+
+import { useFrame, useThree } from '@react-three/fiber';
+import { Text, Image as DreiImage, useCursor, useTexture } from '@react-three/drei';
+import { RigidBody, RapierRigidBody, CuboidCollider } from '@react-three/rapier';
+import * as THREE from 'three';
+import { EvidenceItem, EvidenceType } from '../types';
+
+import { renderDocumentToTexture } from '../services/document-rendering/renderDocument';
+import { getTemplateForEvidence } from '../services/templateManager';
+
+const DeductionPin = ({ onClick, visible }: { onClick: (e: any) => void, visible: boolean }) => {
+  const [hover, setHover] = useState(false);
+  return (
+    <group visible={visible}>
+      <mesh
+        position={[0, 0.01, 0]}
+        onClick={(e) => { e.stopPropagation(); onClick(e); }}
+        onPointerDown={(e) => { e.stopPropagation(); }} /* Stop Drag Propagation */
+        onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = 'crosshair'; }}
+        onPointerOut={(e) => { e.stopPropagation(); setHover(false); document.body.style.cursor = 'auto'; }}
+        scale={hover ? 1.5 : 1}
+      >
+        <sphereGeometry args={[0.015]} />
+        <meshStandardMaterial
+          color={hover ? "#ff4444" : "#aa0000"}
+          emissive="#ff0000"
+          emissiveIntensity={hover ? 0.5 : 0}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      {/* Interaction Zone - larger */}
+      <mesh position={[0, 0, 0]} visible={false} onClick={(e) => { e.stopPropagation(); onClick(e); }} onPointerDown={(e) => { e.stopPropagation(); }}>
+        <sphereGeometry args={[0.05]} />
+      </mesh>
+    </group>
+  )
+}
+
+interface EvidenceObjectProps {
+  item: EvidenceItem;
+  isFocused: boolean;
+  onFocus: (id: string) => void;
+  onUnfocus: () => void;
+  isPinned: boolean;
+  onPin: (pinned: boolean) => void;
+  onPinClick?: (id: string, pos: THREE.Vector3) => void; // New prop
+}
+
+const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<RapierRigidBody>) => {
+  const { item, isFocused, onFocus, onUnfocus, isPinned, onPin, onPinClick } = props;
+  const localRef = useRef<RapierRigidBody>(null);
+  useImperativeHandle(ref, () => localRef.current!);
+  // Note: this assumes localRef is populated. Rapier might load async? usually fine.
+
+  const currentView = useGameStore((state) => state.currentView);
+  const setIsDraggingItem = useGameStore((state) => state.setIsDraggingItem);
+
+  const rigidBody = localRef; // Use localRef internally
+  const meshRef = useRef<THREE.Group>(null);
+  const [hovered, setHovered] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const { camera, raycaster, mouse, viewport } = useThree();
+
+  // Sync dragging state to global store to disable camera interactions
+  useEffect(() => {
+    setIsDraggingItem(isDragging);
+  }, [isDragging, setIsDraggingItem]);
+
+  // Use a plane for raycasting when dragging
+  const dragPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
+  const dragPoint = useRef(new THREE.Vector3());
+
+  useCursor(hovered && !isDragging, 'pointer', 'auto');
+  useCursor(isDragging, 'grabbing', 'auto');
+
+  // Generate a consistent random image for photos if not provided or vague
+  const imageUrl = useMemo(() => {
+    if (item.type === EvidenceType.PHOTO) {
+      const seed = item.id;
+      return `https://picsum.photos/seed/${seed}/200/200`;
+    }
+    return undefined;
+  }, [item.type, item.id]);
+
+  const [zoomOffset, setZoomOffset] = useState(0);
+
+  useFrame((state, delta) => {
+    if (!rigidBody.current) return;
+
+    if (isFocused) {
+      // Focus Mode: Smoothly move to front of camera
+      // Base distance is -0.4. Zoom offset adds to this (e.g. -0.1 gets closer)
+      const baseDist = -0.4;
+      const targetDist = baseDist + zoomOffset;
+      const clampedDist = Math.max(-0.8, Math.min(-0.2, targetDist));
+
+      const targetPos = new THREE.Vector3(panOffset.x, panOffset.y, clampedDist);
+      targetPos.applyMatrix4(camera.matrixWorld);
+
+      const currentPos = rigidBody.current.translation();
+      const newPos = new THREE.Vector3(currentPos.x, currentPos.y, currentPos.z).lerp(targetPos, 0.1);
+
+      // Face the camera perfectly
+      // Face the camera - simplified to look at camera position
+      // The text is on the top face (Y+), so we need to rotate it to face -Z relative to camera
+
+      const targetQuat = new THREE.Quaternion();
+      targetQuat.setFromEuler(new THREE.Euler(Math.PI / 3, 0, 0)); // Tilt up 60 degrees to face camera
+      targetQuat.premultiply(camera.quaternion); // Match camera orientation
+
+      // Apply User Rotation
+      targetQuat.multiply(userRotation.current);
+
+      const currentRot = rigidBody.current.rotation();
+      const currentQuat = new THREE.Quaternion(currentRot.x, currentRot.y, currentRot.z, currentRot.w);
+      currentQuat.slerp(targetQuat, 0.1);
+
+      rigidBody.current.setTranslation(newPos, true);
+      rigidBody.current.setRotation(currentQuat, true);
+      rigidBody.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      rigidBody.current.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    }
+
+    else if (isDragging) {
+      // Drag Logic: Raycast to plane and move kinematic body
+      raycaster.setFromCamera(mouse, camera);
+
+      const currentPos = rigidBody.current.translation();
+      let targetPos: THREE.Vector3 | null = null;
+
+      // Define Wall/Board Plane (Z-facing) and Desk Plane (Y-facing)
+      // Board is at Z ~ 0.48. Normal points to -Z (towards camera).
+      // Plane equation: -z + 0.48 = 0  => z = 0.48
+      const boardPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0.48);
+
+      const deskPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -currentPos.y);
+
+      // Board View: Always use Wall Plane
+      if (currentView === 'BOARD' || isPinned) {
+        const hit = new THREE.Vector3();
+        raycaster.ray.intersectPlane(boardPlane, hit);
+        if (hit) {
+          targetPos = new THREE.Vector3(hit.x, hit.y, 0.48);
+          // Orient flat against board
+          targetRotation.current.setFromEuler(new THREE.Euler(Math.PI / 2, 0, Math.PI));
+          if (meshRef.current) meshRef.current.scale.set(1, 1, 1);
+        }
+      }
+      // Desk View: Hybrid approach (Wall + Desk)
+      else {
+        const deskHit = new THREE.Vector3();
+        const boardHit = new THREE.Vector3();
+
+        const hasDeskHit = raycaster.ray.intersectPlane(deskPlane, deskHit);
+        const hasBoardHit = raycaster.ray.intersectPlane(boardPlane, boardHit);
+
+        // Threshold: exact intersection of Desk and Board planes
+        // Z = 0.48. 
+        // If the desk hit is "behind" the board (Z > 0.48) or simply "close enough" (Z > 0.25), switch to wall.
+        const WALL_THRESHOLD_Z = 0.25;
+
+        if (hasDeskHit && deskHit.z < WALL_THRESHOLD_Z) {
+          // We are on the desk part
+          targetPos = new THREE.Vector3(deskHit.x, currentPos.y, deskHit.z);
+          // Orient flat on desk (reset rotation)
+          targetRotation.current.setFromEuler(new THREE.Euler(0, 0, 0));
+          if (meshRef.current) meshRef.current.scale.set(1, 1, 1);
+
+        } else if (hasBoardHit) {
+          // We are projecting onto the wall part
+          targetPos = new THREE.Vector3(boardHit.x, boardHit.y, 0.48);
+          // Orient flat against board
+          targetRotation.current.setFromEuler(new THREE.Euler(Math.PI / 2, Math.PI, 0));
+          if (meshRef.current) meshRef.current.scale.set(1, 1, 1);
+
+        } else if (hasDeskHit) {
+          // Fallback: If we missed the board plane (too high?), clamp desk hit?
+          // Actually if we look too high, ray intersects desk plane "behind" us or at infinity.
+          // Just stick to using board hit if available.
+        }
+      }
+
+      if (targetPos) {
+        const lerpPos = new THREE.Vector3(currentPos.x, currentPos.y, currentPos.z).lerp(targetPos, 0.2);
+        rigidBody.current.setTranslation(lerpPos, true);
+      }
+
+      // Lerp rotation towards target
+      const currentRot = rigidBody.current.rotation();
+      const currentQuat = new THREE.Quaternion(currentRot.x, currentRot.y, currentRot.z, currentRot.w);
+      currentQuat.slerp(targetRotation.current, 0.15);
+      rigidBody.current.setRotation(currentQuat, true);
+
+      rigidBody.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    }
+  });
+
+  // Drag Logic handled in useFrame
+
+
+  // Improved Click/Drag separation
+  const dragStartPos = useRef<{ x: number, y: number } | null>(null);
+
+  // Focus Mode Interaction State
+  const userRotation = useRef(new THREE.Quaternion());
+  const isInteracting = useRef(false);
+  const lastPointerPos = useRef({ x: 0, y: 0 });
+  const targetRotation = useRef(new THREE.Quaternion());
+
+  // Reset user rotation when focus changes
+  useEffect(() => {
+    if (isFocused) {
+      userRotation.current.identity();
+      setZoomOffset(0);
+      console.log(`Viewing evidence: ${item.label} (ID: ${item.id})`);
+    }
+  }, [isFocused, item.label, item.id]);
+
+  const onPointerDown = (e: any) => {
+    e.stopPropagation();
+
+    // If focused, start manual rotation
+    if (isFocused) {
+      isInteracting.current = true;
+      lastPointerPos.current = { x: e.clientX, y: e.clientY };
+      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+      return;
+    }
+
+    // Normal Drag logic
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+
+    if (rigidBody.current) {
+      setIsDragging(true);
+      rigidBody.current.setBodyType(2, true); // KinematicPosition
+      rigidBody.current.wakeUp();
+    }
+  };
+
+  const onPointerMove = (e: any) => {
+    // Handle Rotation/Pan in Focus Mode
+    if (isFocused && isInteracting.current) {
+      e.stopPropagation();
+      const dx = e.clientX - lastPointerPos.current.x;
+      const dy = e.clientY - lastPointerPos.current.y;
+      const sensitivity = 0.005;
+
+      if (e.shiftKey) {
+        // Pan (Move Up/Down/Left/Right)
+        // In camera space, X is right, Y is up.
+        // Note: dx is pixels. We need to scale down.
+        const panScale = 0.001;
+        setPanOffset(prev => ({
+          x: prev.x + (dx * panScale),
+          y: prev.y - (dy * panScale) // Screen Y is down, World Y is up
+        }));
+      } else {
+        // Rotate
+        const qx = new THREE.Quaternion();
+        qx.setFromAxisAngle(new THREE.Vector3(1, 0, 0), dy * sensitivity);
+        const qy = new THREE.Quaternion();
+        qy.setFromAxisAngle(new THREE.Vector3(0, 1, 0), dx * sensitivity);
+
+        userRotation.current.multiply(qx); // Vertical rotates around X
+        userRotation.current.premultiply(qy); // Horizontal rotates around Y (Global/View relative)
+      }
+
+      lastPointerPos.current = { x: e.clientX, y: e.clientY };
+    }
+  };
+
+  const onPointerUp = (e: any) => {
+    e.stopPropagation();
+
+    if (isFocused) {
+      if (isInteracting.current) {
+        isInteracting.current = false;
+        (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+
+        // Check for click (minimal movement) to handle page turn
+        if (lastPointerPos.current && dragStartPos.current === null) {
+          // If we just clicked without moving much, maybe it was a page turn?
+          // Actually, let's keep it simple: Click = Page Turn. Drag = Rotate.
+          // But we use the same Down/Up. 
+          // We can simply check total rotation or handlePageClick explicitly inside move?
+          // Let's defer page click to 'onClick' or similar if possible, 
+          // or just assume if delta was small it's a click.
+        }
+      }
+      return;
+    }
+
+    setIsDragging(false);
+
+    if (rigidBody.current) {
+      // Check if dropped near board (Board is around z = 0.6, y = 1.6)
+      const pos = rigidBody.current.translation();
+      // Camera is at z ~ -1.25. Board is at z ~ 0.6.
+      // So "near board" is z > 0.
+      const isOnBoard = pos.z > 0.2 && pos.y > 1.0;
+
+      if (isOnBoard) {
+        if (!isPinned) {
+          onPin(true);
+          // Snap to board surface (Board front face ~ 0.5)
+          rigidBody.current.setTranslation({ x: pos.x, y: pos.y, z: 0.48 }, true);
+          // Fixed rotation facing camera (Top of paper becomes Top of board)
+          const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, Math.PI));
+          rigidBody.current.setRotation(q, true);
+
+          rigidBody.current.setBodyType(1, true); // Fixed
+        }
+      } else {
+        if (isPinned) {
+          onPin(false);
+          rigidBody.current.setBodyType(0, true);
+          rigidBody.current.wakeUp();
+        } else {
+          rigidBody.current.setBodyType(0, true);
+          rigidBody.current.wakeUp();
+          rigidBody.current.setLinvel({ x: 0, y: -1, z: 0 }, true);
+        }
+      }
+    }
+
+    if (dragStartPos.current) {
+      const dist = Math.hypot(e.clientX - dragStartPos.current.x, e.clientY - dragStartPos.current.y);
+      // Increased threshold to differentiate drag vs click clearly
+      if (dist < 10) {
+        if (!isFocused) onFocus(item.id);
+      }
+      dragStartPos.current = null;
+    }
+    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+  };
+
+  // Revert physics type when unfocused OR unpinned state changes (from outside)
+  useEffect(() => {
+    if (rigidBody.current) {
+      if (isPinned) {
+        rigidBody.current.setBodyType(1, true); // Fixed
+      } else if (!isFocused) {
+        rigidBody.current.setBodyType(0, true); // Dynamic
+        rigidBody.current.wakeUp();
+      }
+    }
+  }, [isPinned, isFocused]);
+
+
+  const borderColor = hovered ? "#ff9900" : "#222";
+  // const paperWidth = 0.21; // Now dynamic
+  // const paperHeight = 0.29; // Now dynamic
+
+  const isNewSystem = useMemo(() => {
+    const templateId = item.metadata?.type || item.metadata?.templateId;
+    return item.type === EvidenceType.PAPER && !!templateId;
+  }, [item.metadata?.templateId, item.metadata?.type, item.type]);
+
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+
+  // Place document above desk when exiting focus mode
+  useEffect(() => {
+    if (!isFocused && rigidBody.current && !isPinned) {
+      // Exit focus: place above desk so it stays visible
+      const safePos = {
+        x: DESK_X_CENTER,
+        y: DESK_Y_CENTER + DESK_DROP_HEIGHT,
+        z: DESK_Z_CENTER
+      };
+      rigidBody.current.setTranslation(safePos, true);
+      rigidBody.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      rigidBody.current.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    }
+  }, [isFocused, isPinned]);
+
+  // Monitor for documents falling off desk and reset them
+  useEffect(() => {
+    const fallCheckInterval = setInterval(() => {
+      if (!rigidBody.current) return;
+
+      const pos = rigidBody.current.translation();
+
+      // If document has fallen too far below desk, bring it back
+      if (pos.y < FALL_THRESHOLD_Y && !isPinned && !isFocused) {
+        const safePos = {
+          x: pos.x > 2 ? pos.x - 0.5 : (pos.x < -2 ? pos.x + 0.5 : pos.x), // Keep it roughly in place horizontally
+          y: DESK_Y_CENTER + DESK_DROP_HEIGHT,
+          z: Math.max(DESK_Z_CENTER, pos.z) // Keep Z if it's higher
+        };
+        rigidBody.current.setTranslation(safePos, true);
+        rigidBody.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      }
+    }, 500); // Check every 500ms
+
+    return () => clearInterval(fallCheckInterval);
+  }, [isPinned, isFocused]);
+
+  const [paperWidth, paperHeight] = useMemo(() => {
+    // Default A4 vertical: 0.21 x 0.29
+    const tid = getTemplateForEvidence(item);
+    if (!tid) return [0.21, 0.29];
+
+    switch (tid) {
+      case 'rail-timetable': return [0.10, 0.20]; // Ticket size
+      case 'boarding-pass': return [0.20, 0.10]; // Wide ticket
+      case 'news-clipping': return [0.15, 0.25]; // Scrap
+      case 'handwritten-note': return [0.15, 0.20]; // Notepad
+      case 'crime-scene-sketch': return [0.29, 0.21]; // Landscape A4
+      case 'email-printout': return [0.21, 0.29];
+      default: return [0.21, 0.29];
+    }
+  }, [item.metadata?.templateId, item.metadata?.type, item.label, item.content]);
+
+  // Safe desk position to place documents
+  const DESK_X_CENTER = 0;
+  const DESK_Y_CENTER = 1.2;
+  const DESK_Z_CENTER = 0.1;
+  const DESK_DROP_HEIGHT = 0.15; // Height above desk surface
+  const FALL_THRESHOLD_Y = 0.3; // If document falls below this, reset it
+
+  const [generatedMaps, setGeneratedMaps] = useState<THREE.Texture[]>([]);
+  // Use store for pagination state so HUD can access it
+  const documentStates = useGameStore(state => state.documentStates);
+  const setDocumentTotalPages = useGameStore(state => state.setDocumentTotalPages);
+  const currentPage = documentStates[item.id]?.currentPage || 0;
+
+  useEffect(() => {
+    if (isNewSystem) {
+      // Use fields if available, otherwise fallback to top-level metadata
+      // INJECT CONTENT: Ensure abstract 'content' and 'label' are available to restrictions
+      const data = {
+        ...(item.metadata.fields ? item.metadata.fields : item.metadata),
+        // Inject fallback data for unstructured AI responses
+        content: item.content,
+        label: item.label,
+        description: item.description
+      };
+
+      // PRIORITY FIX: Resolve Template ID robustly
+      const tid = getTemplateForEvidence(item);
+
+      renderDocumentToTexture(tid, data).then((urls) => {
+        // urls is string[]
+        Promise.all(urls.map((url) => {
+          return new Promise<THREE.Texture>((resolve) => {
+            new THREE.TextureLoader().load(url, (tex) => {
+              tex.wrapS = THREE.ClampToEdgeWrapping;
+              tex.wrapT = THREE.ClampToEdgeWrapping;
+              tex.anisotropy = 8;
+              tex.colorSpace = THREE.SRGBColorSpace;
+              resolve(tex);
+            });
+          });
+        })).then((textures) => {
+          setGeneratedMaps(textures);
+          setDocumentTotalPages(item.id, textures.length);
+        });
+      }).catch(err => console.error("Texture Gen Error", err));
+    } else {
+      setGeneratedMaps([]);
+    }
+  }, [isNewSystem, item.metadata, item.id]);
+
+  // Physics cleanup for focus mode
+  // When entering focus, we SNAP to kinematic. When leaving, SNAP to dynamic.
+  // The useFrame logic was fighting with setTranslation.
+  useEffect(() => {
+    if (!rigidBody.current) return;
+
+    if (isFocused) {
+      rigidBody.current.setBodyType(2, true); // KinematicPosition - No gravity, manual move
+      rigidBody.current.wakeUp();
+    } else {
+      if (isPinned) {
+        rigidBody.current.setBodyType(1, true); // Fixed
+        if (meshRef.current) meshRef.current.scale.set(1, 1, 1);
+      } else {
+        rigidBody.current.setBodyType(0, true); // Dynamic
+        if (meshRef.current) meshRef.current.scale.set(1, 1, 1);
+      }
+      rigidBody.current.wakeUp();
+    }
+  }, [isFocused, isPinned]);
+
+
+  return (
+    <RigidBody
+      ref={rigidBody}
+      position={item.position}
+      rotation={item.rotation}
+      colliders={false}
+      friction={2}
+      restitution={0.05}
+      linearDamping={2}
+      angularDamping={2}
+    >
+      <group
+        ref={meshRef}
+        onPointerOver={() => !isDragging && setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+        onWheel={(e) => {
+          if (isFocused) {
+            // Zoom in/out
+            // e.deltaY is positive for scroll down (zoom out), negative for scroll up (zoom in)
+            const zoomSpeed = 0.001;
+            setZoomOffset(prev => prev - e.deltaY * zoomSpeed);
+          }
+        }}
+        onPointerMove={(e) => {
+          if (currentView === 'COMPUTER') return;
+          onPointerMove(e);
+        }}
+        onPointerDown={(e) => {
+          if (currentView === 'COMPUTER') return;
+          onPointerDown(e);
+        }}
+        onPointerUp={(e) => {
+          if (currentView === 'COMPUTER') return;
+          onPointerUp(e);
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {item.type === EvidenceType.PAPER && (
+          <group>
+            {/* Base Paper Block (Physical Body) */}
+            <mesh castShadow receiveShadow>
+              <boxGeometry args={[paperWidth, 0.002, paperHeight]} />
+              <meshStandardMaterial
+                color="#fdfdfd"
+                roughness={0.9}
+                metalness={0}
+              />
+            </mesh>
+
+            {/* Document Content Plane (Decal on Top) */}
+            {generatedMaps.length > 0 && (
+              <mesh
+                position={[0, 0.0011, 0]}
+                rotation={[-Math.PI / 2, 0, 0]}
+                receiveShadow
+              >
+                <planeGeometry args={[paperWidth, paperHeight]} />
+                <meshStandardMaterial
+                  map={generatedMaps[currentPage]}
+                  transparent={true}
+                  roughness={0.8}
+                  metalness={0}
+                  side={THREE.FrontSide}
+                />
+              </mesh>
+            )}
+
+            {/* Outline on hover */}
+            {hovered && (
+              <mesh position={[0, 0, 0]}>
+                <boxGeometry args={[paperWidth + 0.01, 0.001, paperHeight + 0.01]} />
+                <meshBasicMaterial color={borderColor} wireframe />
+              </mesh>
+            )}
+
+            <mesh position={[0, 0, 0]}>
+              <boxGeometry args={[paperWidth + 0.01, 0.001, paperHeight + 0.01]} />
+              <meshBasicMaterial color={borderColor} wireframe />
+            </mesh>
+
+            <group position={[0, 0, -paperHeight / 2 + 0.02]}>
+              <DeductionPin
+                visible={isPinned}
+                onClick={(e: any) => {
+                  if (!isPinned) return;
+                  const worldPos = new THREE.Vector3();
+                  e.object.getWorldPosition(worldPos);
+                  onPinClick?.(item.id, worldPos);
+                }}
+              />
+            </group>
+
+
+            <CuboidCollider args={[paperWidth / 2, 0.001, paperHeight / 2]} />
+          </group>
+        )}
+
+        {item.type === EvidenceType.PHOTO && (
+          <group>
+            {/* Photo Border */}
+            <mesh castShadow receiveShadow>
+              <boxGeometry args={[0.15, 0.002, 0.18]} />
+              <meshStandardMaterial color="#fff" roughness={0.5} />
+            </mesh>
+            {/* Outline */}
+            {hovered && (
+              <mesh position={[0, 0, 0]}>
+                <boxGeometry args={[0.16, 0.001, 0.19]} />
+                <meshBasicMaterial color={borderColor} wireframe />
+              </mesh>
+            )}
+            {/* Photo Image */}
+            <DreiImage
+              url={imageUrl}
+              position={[0, 0.002, -0.01]}
+              rotation={[-Math.PI / 2, 0, 0]}
+              scale={[0.13, 0.13]}
+            />
+            {/* Label */}
+            <Text
+              position={[0, 0.002, 0.07]}
+              rotation={[-Math.PI / 2, 0, 0]}
+              fontSize={0.01}
+              color="black"
+              anchorX="center"
+              anchorY="middle"
+            >
+              {item.label}
+            </Text>
+
+            <group position={[0, 0, -0.07]}>
+              <DeductionPin
+                visible={isPinned}
+                onClick={(e: any) => {
+                  if (!isPinned) return;
+                  const worldPos = new THREE.Vector3();
+                  e.object.getWorldPosition(worldPos);
+                  onPinClick?.(item.id, worldPos);
+                }}
+              />
+            </group>
+
+            <CuboidCollider args={[0.075, 0.001, 0.09]} />
+          </group>
+        )}
+
+
+      </group>
+    </RigidBody>
+  );
+});
+
+export default EvidenceObject;

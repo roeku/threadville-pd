@@ -1,0 +1,5 @@
+{
+  "name": "Deduction Pinboard",
+  "description": "A tactical detective logic puzzle interface. Connect clues with string, organize evidence, and submit an arrest warrant in a physical corkboard environment.",
+  "requestFramePermissions": []
+}
