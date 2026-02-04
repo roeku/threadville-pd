@@ -18,7 +18,21 @@ import CaseCompletionFolder from './CaseCompletionFolder';
 
 // PERFORMANCE: Shared debug box geometries and materials
 const debugBoxGeometries = new Map<string, THREE.BoxGeometry>();
-const debugBoxMaterial = new THREE.MeshBasicMaterial({ wireframe: true, transparent: true, opacity: 0.5 });
+const debugBoxMaterialsCache = new Map<string, THREE.MeshBasicMaterial>();
+
+const getDebugBoxMaterial = (color: string) => {
+  let material = debugBoxMaterialsCache.get(color);
+  if (!material) {
+    material = new THREE.MeshBasicMaterial({ 
+      color, 
+      wireframe: true, 
+      transparent: true, 
+      opacity: 0.5 
+    });
+    debugBoxMaterialsCache.set(color, material);
+  }
+  return material;
+};
 
 const DebugBox = React.memo(({ position, args, color }: { position: [number, number, number], args: [number, number, number], color: string }) => {
   const key = args.join(',');
@@ -28,11 +42,7 @@ const DebugBox = React.memo(({ position, args, color }: { position: [number, num
     debugBoxGeometries.set(key, geometry);
   }
   
-  const material = useMemo(() => {
-    const mat = debugBoxMaterial.clone();
-    mat.color.set(color);
-    return mat;
-  }, [color]);
+  const material = useMemo(() => getDebugBoxMaterial(color), [color]);
 
   return (
     <mesh position={position}>
@@ -41,6 +51,8 @@ const DebugBox = React.memo(({ position, args, color }: { position: [number, num
     </mesh>
   );
 });
+
+DebugBox.displayName = 'DebugBox';
 
 const ControlledPointLight = ({ position, intensity, color, distance, decay, castShadow, showHelper }: {
   position: [number, number, number];

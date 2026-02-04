@@ -518,6 +518,9 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
   }, [documentContentMaterial, generatedMaps, currentPage]);
 
   useEffect(() => {
+    // Capture the current textures to dispose in cleanup
+    const texturesToDispose = generatedMaps;
+
     if (isNewSystem) {
       // Use fields if available, otherwise fallback to top-level metadata
       // INJECT CONTENT: Ensure abstract 'content' and 'label' are available to restrictions
@@ -562,7 +565,7 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
 
     // PERFORMANCE: Cleanup - dispose old textures when component unmounts or metadata changes
     return () => {
-      generatedMaps.forEach(texture => {
+      texturesToDispose.forEach(texture => {
         texture.dispose();
       });
     };
