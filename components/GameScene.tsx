@@ -16,6 +16,44 @@ import { Perf } from 'r3f-perf';
 import { CubicleInstances, CubicleModel } from './Cubicle';
 import CaseCompletionFolder from './CaseCompletionFolder';
 
+// PERFORMANCE: Shared debug box geometries and materials
+const debugBoxGeometries = new Map<string, THREE.BoxGeometry>();
+const debugBoxMaterialsCache = new Map<string, THREE.MeshBasicMaterial>();
+
+const getDebugBoxMaterial = (color: string) => {
+  let material = debugBoxMaterialsCache.get(color);
+  if (!material) {
+    material = new THREE.MeshBasicMaterial({ 
+      color, 
+      wireframe: true, 
+      transparent: true, 
+      opacity: 0.5 
+    });
+    debugBoxMaterialsCache.set(color, material);
+  }
+  return material;
+};
+
+const DebugBox = React.memo(({ position, args, color }: { position: [number, number, number], args: [number, number, number], color: string }) => {
+  const key = args.join(',');
+  let geometry = debugBoxGeometries.get(key);
+  if (!geometry) {
+    geometry = new THREE.BoxGeometry(...args);
+    debugBoxGeometries.set(key, geometry);
+  }
+  
+  const material = useMemo(() => getDebugBoxMaterial(color), [color]);
+
+  return (
+    <mesh position={position}>
+      <primitive object={geometry} attach="geometry" />
+      <primitive object={material} attach="material" />
+    </mesh>
+  );
+});
+
+DebugBox.displayName = 'DebugBox';
+
 const ControlledPointLight = ({ position, intensity, color, distance, decay, castShadow, showHelper }: {
   position: [number, number, number];
   intensity: number;
@@ -69,17 +107,21 @@ const CaseFolder = ({ title, briefing, caseId }: { title: string, briefing: stri
     color: "#f0f0e0"
   }), []);
 
+  // PERFORMANCE: Memoize geometries to avoid recreation
+  const folderGeometry = useMemo(() => new THREE.BoxGeometry(0.3, 0.02, 0.4), []);
+  const paperGeometry = useMemo(() => new THREE.BoxGeometry(0.28, 0.001, 0.38), []);
+
   return (
     <RigidBody colliders="cuboid" type="dynamic" position={[0.5, 1, 1.2]} rotation={[0, -0.2, 0]}>
       <group>
         {/* Folder Base */}
         <mesh castShadow receiveShadow>
-          <boxGeometry args={[0.3, 0.02, 0.4]} />
+          <primitive object={folderGeometry} attach="geometry" />
           <primitive object={folderMaterial} attach="material" />
         </mesh>
         {/* Paper Inside */}
         <mesh position={[0, 0.015, 0]}>
-          <boxGeometry args={[0.28, 0.001, 0.38]} />
+          <primitive object={paperGeometry} attach="geometry" />
           <primitive object={paperMaterial} attach="material" />
         </mesh>
         {/* Text Context */}
@@ -151,17 +193,20 @@ const CityBackdrop = () => {
     depthWrite: false,
   }), [texture]);
 
+  // PERFORMANCE: Memoize geometry to avoid recreation
+  const cylinderGeometry = useMemo(() => new THREE.CylinderGeometry(
+    16,      // radius top
+    16,      // radius bottom  
+    12,      // height
+    32,      // radial segments (smoothness)
+    2,       // height segments
+    true     // openEnded (no caps)
+  ), []);
+
   return (
     <mesh position={[0, 0, 0]} rotation={[0, Math.PI, 0]} frustumCulled>
       {/* Cylinder wraps around the scene - openEnded means no top/bottom caps */}
-      <cylinderGeometry args={[
-        16,      // radius top
-        16,      // radius bottom  
-        12,       // height
-        32,      // radial segments (smoothness)
-        2,       // height segments
-        true     // openEnded (no caps)
-      ]} />
+      <primitive object={cylinderGeometry} attach="geometry" />
       <primitive object={material} attach="material" />
     </mesh>
   );
@@ -718,23 +763,14 @@ const GameScene: React.FC<GameSceneProps> = ({
             {showDebugBoxes && (
               <>
                 {/* Investigation Board Box - Green */}
-                <mesh position={[boardPos.x, boardPos.y, boardPos.z]}>
-                  <boxGeometry args={[10 * boardScale, 6 * boardScale, 0.1 * boardScale]} />
-                  <meshBasicMaterial color="green" wireframe transparent opacity={0.5} />
-                </mesh>
+                <DebugBox position={[boardPos.x, boardPos.y, boardPos.z]} args={[10 * boardScale, 6 * boardScale, 0.1 * boardScale]} color="green" />
 
                 {/* Desk Surface Box - Yellow (use deskGroupRef transform) */}
                 <group position={[deskPos.x, deskPos.y, deskPos.z]} rotation={[0, Math.PI / 2, 0]}>
-                  <mesh position={[0, 0.74, 0]}>
-                    <boxGeometry args={[0.88, 0.02, 2]} />
-                    <meshBasicMaterial color="yellow" wireframe transparent opacity={0.5} />
-                  </mesh>
+                  <DebugBox position={[0, 0.74, 0]} args={[0.88, 0.02, 2]} color="yellow" />
 
                   {/* Computer Screen Box - Blue */}
-                  <mesh position={[-0.134, 0.967, -0.626]}>
-                    <boxGeometry args={[0.5, 0.45, 0.01]} />
-                    <meshBasicMaterial color="blue" wireframe transparent opacity={0.5} />
-                  </mesh>
+                  <DebugBox position={[-0.134, 0.967, -0.626]} args={[0.5, 0.45, 0.01]} color="blue" />
                 </group>
               </>
             )}
