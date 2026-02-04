@@ -129,7 +129,7 @@ export const CaseCompletionTemplate: React.FC<{ data: CaseCompletionData }> = ({
             {/* Comparative Performance Chart */}
             <div className="mb-3 border-2 border-gray-400 p-2 bg-white/20">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-gray-600 mb-2">Comparative Analysis: Detective Performance</h3>
-                
+
                 {/* Chart Legend */}
                 <div className="text-xs mb-1 px-2">
                     <span className="inline-block mr-4"><span className="inline-block w-2 h-2 bg-blue-900 mr-1"></span>You</span>
@@ -141,7 +141,7 @@ export const CaseCompletionTemplate: React.FC<{ data: CaseCompletionData }> = ({
                     {sortedBuckets.map(([bucketStart, buckDetectives]) => {
                         const bucketEnd = bucketStart + bucketSize;
                         const label = `${Math.floor(bucketStart / 60)}-${Math.floor(bucketEnd / 60)}m`;
-                        
+
                         return (
                             <div key={bucketStart} className="flex items-center gap-2">
                                 <div className="w-16 text-right text-xs font-mono">{label}</div>
@@ -181,7 +181,7 @@ export const CaseCompletionTemplate: React.FC<{ data: CaseCompletionData }> = ({
                 {/* Outer grunge effect */}
                 <div className="relative">
                     {/* Base stamp shape with texture */}
-                    <div 
+                    <div
                         className="
                             border-4 border-green-900 p-4 text-center
                             bg-gradient-to-br from-green-100 to-green-50
@@ -198,7 +198,7 @@ export const CaseCompletionTemplate: React.FC<{ data: CaseCompletionData }> = ({
                     >
                         {/* Dotted circle border effect */}
                         <div className="absolute inset-1 border-2 border-dashed border-green-900 opacity-50" style={{ borderRadius: '2px' }}></div>
-                        
+
                         <div className="relative">
                             <div className="text-5xl font-black text-green-900 tracking-widest leading-tight mb-0.5">CLOSED</div>
                             <div className="h-0.5 bg-green-900 mx-2 my-0.5"></div>
@@ -207,7 +207,7 @@ export const CaseCompletionTemplate: React.FC<{ data: CaseCompletionData }> = ({
                     </div>
 
                     {/* Grunge noise texture overlay */}
-                    <div 
+                    <div
                         className="absolute inset-0 opacity-40 pointer-events-none"
                         style={{
                             backgroundImage: `
