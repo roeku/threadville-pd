@@ -6,7 +6,24 @@ export enum DocumentType {
   WITNESS_STATEMENT = 'witness-statement',
   TRANSCRIPT = 'transcript-excerpt',
   INCIDENT_REPORT = 'incident-report',
-  FORENSIC_REPORT = 'forensic-report'
+  FORENSIC_REPORT = 'forensic-report',
+  CASE_COMPLETION = 'case-completion'
+}
+
+export interface CaseCompletionData {
+    caseTitle: string;
+    caseStatus: string;
+    timeToComplete: string;
+    confirmedLinks: number;
+    criticalLinks: number;
+    disputedLinks: number;
+    documentsFiled: number;
+    forensicTasksCompleted: string;
+    dateFiled: string;
+    investigatorId: string;
+    // New Fields
+    solutionReasoning?: string;
+    averageCompletionTime?: string;
 }
 
 export interface AutopsyReportData {

@@ -2,10 +2,12 @@ import React, { useState, useRef } from 'react';
 import GameScene from './components/GameScene';
 import { generateTTS } from './services/geminiService';
 import { useGameStore } from './stores/useGameStore';
+import { createDeductionState } from './services/deductionService';
 import { GameState, EvidenceType, CaseFile } from './types';
 import { Loader2, Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import MainMenu from './components/MainMenu';
 import AdminDashboard from './components/admin/AdminDashboard';
+import { startCaseSession, completeCaseSession, getSessionReport } from './services/gameProgressService';
 
 export default function App() {
   const [gameState, setGameState] = useState<GameState>({
@@ -17,7 +19,7 @@ export default function App() {
   });
 
   const [isAdminMode, setIsAdminMode] = useState(false);
-
+  const [completionReport, setCompletionReport] = useState<any>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -47,16 +49,57 @@ export default function App() {
   };
 
   const { setFocusedItem } = useGameStore();
+  const setDeductionState = useGameStore(state => state.setDeductionState);
+  const clearLinks = useGameStore(state => state.clearLinks);
   const setView = useGameStore(state => state.setView);
   const documentStates = useGameStore(state => state.documentStates);
   const setDocumentPage = useGameStore(state => state.setDocumentPage);
+
+  // Game Progress Tracking
+  const sessionId = useGameStore(state => state.sessionId);
+  const sessionStartTime = useGameStore(state => state.sessionStartTime);
+  const setSessionId = useGameStore(state => state.setSessionId);
+  const setSessionStartTime = useGameStore(state => state.setSessionStartTime);
+  const showCompletionModal = useGameStore(state => state.showCompletionModal);
+  const setShowCompletionModal = useGameStore(state => state.setShowCompletionModal);
+  const solved = useGameStore(state => state.solved);
+  const setSolved = useGameStore(state => state.setSolved);
 
   const handleFocusItem = (id: string | null) => {
     setFocusedItem(id);
     setGameState(prev => ({ ...prev, focusedItemId: id }));
   };
 
-  const handleStartCase = (caseData: CaseFile) => {
+  const handleStartCase = async (caseData: CaseFile) => {
+    console.log('[Case Solution]', caseData.solution);
+    const deductionState = createDeductionState(caseData);
+
+    // Log the expected connections for debugging
+    console.log('\n=== DEDUCTION PUZZLE ===');
+    console.log(`Total Rules: ${deductionState.rules.length}`);
+    console.log(`Critical Rules: ${deductionState.criticalRuleIds.length}`);
+    console.log('\n--- CRITICAL CONNECTIONS (Required to solve) ---');
+    deductionState.rules
+      .filter(r => r.weight >= 1.0 && !r.isRedHerring)
+      .forEach((rule, i) => {
+        const sourceItem = caseData.entities.find(e => e.id === rule.source) || caseData.suspects.find(s => s.id === rule.source);
+        const targetItem = caseData.entities.find(e => e.id === rule.target) || caseData.suspects.find(s => s.id === rule.target);
+        console.log(`${i + 1}. [${sourceItem?.label || rule.source}] --${rule.type}--> [${targetItem?.label || targetItem?.name || rule.target}]`);
+        console.log(`   Reasoning: ${rule.reasoning}`);
+      });
+    console.log('\n--- RED HERRINGS (Optional/Misleading) ---');
+    deductionState.rules
+      .filter(r => r.isRedHerring)
+      .forEach((rule, i) => {
+        const sourceItem = caseData.entities.find(e => e.id === rule.source) || caseData.suspects.find(s => s.id === rule.source);
+        const targetItem = caseData.entities.find(e => e.id === rule.target) || caseData.suspects.find(s => s.id === rule.target);
+        console.log(`${i + 1}. [${sourceItem?.label || rule.source}] --${rule.type}--> [${targetItem?.label || targetItem?.name || rule.target}]`);
+      });
+    console.log('========================\n');
+
+    setDeductionState(deductionState);
+    clearLinks();
+    setSolved(false);
     setGameState(prev => ({
       ...prev,
       currentCase: caseData,
@@ -67,6 +110,16 @@ export default function App() {
     setFocusedItem(null);
     setAudioUrl(null);
     setView('DESK');
+
+    // Start tracking session
+    try {
+      const newSessionId = await startCaseSession(caseData);
+      setSessionId(newSessionId);
+      setSessionStartTime(Date.now());
+      console.log('📊 Session started:', newSessionId);
+    } catch (error) {
+      console.error('Failed to start session:', error);
+    }
   };
 
   const playBriefing = async () => {
@@ -114,6 +167,47 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setFocusedItem]);
 
+  // Watch for case completion
+  React.useEffect(() => {
+    if (solved && sessionId && sessionStartTime && !completionReport && !showCompletionModal) {
+      // Case just got solved!
+      console.log('🎯 Case completion flow triggered');
+
+      // Calculate time to complete
+      const timeElapsedSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
+      console.log(`⏱️ Session time: ${timeElapsedSeconds}s`);
+
+      // IMMEDIATE FEEDBACK: Switch to desk and show the folder (even if loading)
+      console.log('🏠 Setting view to DESK');
+      setView('DESK');
+      console.log('📂 Showing completion modal (loading state)');
+      setShowCompletionModal(true);
+
+      const completeSession = async () => {
+        try {
+          // This might take a moment, but the user is already looking at the "Processing..." folder
+          await completeCaseSession(sessionId, true, sessionStartTime);
+          console.log('✅ Session completed successfully');
+
+          // Load session report
+          try {
+            console.log('📂 Loading session report for:', sessionId);
+            const report = await getSessionReport(sessionId);
+            console.log('📊 Report loaded:', report);
+            setCompletionReport(report);
+          } catch (error) {
+            console.error('❌ Failed to load session report:', error);
+          }
+        } catch (error) {
+          console.error('❌ Failed to complete session:', error);
+        }
+      };
+
+      // Brief delay to let smooth camera transition start before heavy async work
+      setTimeout(completeSession, 1000);
+    }
+  }, [solved, sessionId, sessionStartTime, completionReport, showCompletionModal, setShowCompletionModal, setView]);
+
   // --- Printer Logic ---
   const printQueue = useGameStore(state => state.printQueue);
   const clearPrintQueue = useGameStore(state => state.clearPrintQueue);
@@ -121,7 +215,7 @@ export default function App() {
   React.useEffect(() => {
     if (printQueue.length > 0 && gameState.currentCase) {
       const newItems = printQueue.map((printJob, i) => ({
-        id: `printout_${Date.now()}_${i}`,
+        id: printJob.reportId || `printout_${Date.now()}_${i}`,
         type: EvidenceType.PAPER,
         label: printJob.title || "Printed Report",
         content: printJob.content,
@@ -135,11 +229,14 @@ export default function App() {
 
       setGameState(prev => {
         if (!prev.currentCase) return prev;
+        const existingEntities = prev.currentCase.entities.filter(
+          entity => !newItems.some(item => item.id === entity.id)
+        );
         return {
           ...prev,
           currentCase: {
             ...prev.currentCase,
-            entities: [...prev.currentCase.entities, ...newItems]
+            entities: [...existingEntities, ...newItems]
           }
         };
       });
@@ -148,8 +245,48 @@ export default function App() {
     }
   }, [printQueue, gameState.currentCase, clearPrintQueue]);
 
+  // Completion modal handlers
+  const handleNextCase = () => {
+    // Reset state and go to main menu (in the future, load next case)
+    setShowCompletionModal(false);
+    setSessionId(null);
+    setSessionStartTime(null);
+    setDeductionState(null);
+    clearLinks();
+    setSolved(false);
+    setCompletionReport(null);
+    setGameState(prev => ({ ...prev, currentCase: null, status: 'briefing', focusedItemId: null }));
+  };
+
+  const handleReplayCase = () => {
+    if (gameState.currentCase) {
+      setShowCompletionModal(false);
+      handleStartCase(gameState.currentCase);
+      setCompletionReport(null);
+    }
+  };
+
+  const handleMainMenu = () => {
+    setShowCompletionModal(false);
+    setSessionId(null);
+    setSessionStartTime(null);
+    setDeductionState(null);
+    clearLinks();
+    setSolved(false);
+    setCompletionReport(null);
+    setGameState(prev => ({ ...prev, currentCase: null, status: 'briefing', focusedItemId: null }));
+  };
+
+  // Handle folder actions from GameScene
+  const handleFolderAction = (action: 'next' | 'replay' | 'menu') => {
+    if (action === 'next') handleNextCase();
+    else if (action === 'replay') handleReplayCase();
+    else handleMainMenu();
+  };
+
   return (
     <div style={{ height: "100vh", width: "100vw" }} className="relative w-full h-full overflow-hidden text-neutral-200 font-sans select-none">
+
 
       {/* ADMIN MODE */}
       {isAdminMode && !gameState.currentCase && (
@@ -181,6 +318,11 @@ export default function App() {
             onConnect={handleConnection}
             isLinkMode={isLinkMode}
             caseFile={gameState.currentCase}
+            showCompletionFolder={showCompletionModal}
+            completionReport={completionReport}
+            sessionId={sessionId}
+            sessionStartTime={sessionStartTime}
+            onFolderAction={handleFolderAction}
           />
         )}
       </div>
@@ -217,7 +359,11 @@ export default function App() {
 
               <div className="text-right ml-4 pointer-events-auto">
                 <button
-                  onClick={() => setGameState(prev => ({ ...prev, currentCase: null, status: 'briefing', focusedItemId: null }))}
+                  onClick={() => {
+                    setDeductionState(null);
+                    clearLinks();
+                    setGameState(prev => ({ ...prev, currentCase: null, status: 'briefing', focusedItemId: null }));
+                  }}
                   className="bg-neutral-900/40 hover:bg-neutral-800 text-neutral-500 hover:text-white px-3 py-1 border border-neutral-900 font-mono text-[10px] uppercase tracking-widest transition"
                 >
                   Archive Case (Exit)

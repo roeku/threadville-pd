@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { EvidenceLink, LinkType } from '../types/deduction';
+import { EvidenceLink, LinkType, DeductionState } from '../types/deduction';
+import { validateLink, isCaseSolved } from '../services/deductionService';
 
-export type GameView = 'DESK' | 'BOARD' | 'EVIDENCE' | 'COMPUTER' | 'AUDIO' | 'CABINET';
+export type GameView = 'DESK' | 'BOARD' | 'EVIDENCE' | 'COMPUTER' | 'CABINET';
 
 interface StoreState {
   currentView: GameView;
@@ -14,20 +15,37 @@ interface StoreState {
   uncoveredClues: Set<string>;
   printQueue: { content: string, title?: string, metadata?: any }[];
 
+  // Game Progress Tracking
+  sessionId: string | null;
+  sessionStartTime: number | null;
+  setSessionId: (id: string | null) => void;
+  setSessionStartTime: (time: number | null) => void;
+  showCompletionModal: boolean;
+  setShowCompletionModal: (show: boolean) => void;
+
   // Document Pagination State
   documentStates: Record<string, { currentPage: number; totalPages: number }>;
   setDocumentPage: (id: string, page: number) => void;
   setDocumentTotalPages: (id: string, total: number) => void;
 
+  // Texture Loading State
+  texturesLoadingCount: number;
+  incrementTextureLoading: () => void;
+  decrementTextureLoading: () => void;
+
   // Deduction Board State
+  deductionState: DeductionState | null;
+  setDeductionState: (state: DeductionState | null) => void;
   links: EvidenceLink[];
   addLink: (fromId: string, toId: string) => string;
   updateLinkType: (id: string, type: LinkType) => void;
   removeLink: (id: string) => void;
-  setLinkStatus: (id: string, status: 'UNCHECKED' | 'VALID' | 'INVALID') => void;
+  setLinkStatus: (id: string, status: 'UNCHECKED' | 'VALID' | 'INVALID', reasoning?: string) => void;
   clearLinks: () => void;
+  validateAndMarkLinks: () => void;
   solved: boolean;
   setSolved: (s: boolean) => void;
+  solvProgress: number;
   
   // Interaction State
   linkingFromId: string | null;
@@ -36,6 +54,10 @@ interface StoreState {
   setIsDraggingItem: (dragging: boolean) => void;
   radialMenu: { x: number, y: number, z: number, connectionId: string } | null;
   setRadialMenu: (data: { x: number, y: number, z: number, connectionId: string } | null) => void;
+
+  // Pointer State
+  isPointerOnComputer: boolean;
+  setIsPointerOnComputer: (isOn: boolean) => void;
   
   // Actions
   setView: (view: GameView) => void;
@@ -45,11 +67,11 @@ interface StoreState {
   
   addUnlockedForensic: (id: string) => void;
   addUncoveredClue: (clueId: string) => void;
-  addToPrintQueue: (item: { content: string, title?: string, metadata?: any }) => void;
+  addToPrintQueue: (item: { content: string, title?: string, metadata?: any, reportId?: string }) => void;
   clearPrintQueue: () => void;
 }
 
-export const useGameStore = create<StoreState>((set) => ({
+export const useGameStore = create<StoreState>((set, get) => ({
   currentView: 'DESK',
   isInspecting: false,
   hoveredItemId: null,
@@ -58,13 +80,27 @@ export const useGameStore = create<StoreState>((set) => ({
   uncoveredClues: new Set(),
   printQueue: [],
   documentStates: {},
+  texturesLoadingCount: 0,
+  
+  // Game Progress
+  sessionId: null,
+  sessionStartTime: null,
+  setSessionId: (id) => set({ sessionId: id }),
+  setSessionStartTime: (time) => set({ sessionStartTime: time }),
+  showCompletionModal: false,
+  setShowCompletionModal: (show) => set({ showCompletionModal: show }),
+  
+  // Deduction state
+  deductionState: null,
+  setDeductionState: (state) => set({ deductionState: state }),
   
   links: [],
   solved: false,
+  solvProgress: 0,
+  
   setSolved: (s) => set({ solved: s }),
+  
   addLink: (fromId, toId) => {
-    // Check if exists
-    // We allow multiple multiple edges ? usually yes unless same pair.
     // Prevent self loop
     if (fromId === toId) return '';
     
@@ -72,26 +108,65 @@ export const useGameStore = create<StoreState>((set) => ({
     const id = `conn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     set((state) => {
-        // Check duplicate
-        if (state.links.some(l => (l.fromId === fromId && l.toId === toId) || (l.fromId === toId && l.toId === fromId))) {
-            return { links: state.links };
-        }
-        return {
-            links: [...state.links, { id, fromId, toId, type: LinkType.UNKNOWN, status: 'UNCHECKED' }]
-        };
+      // Check duplicate
+      if (state.links.some(l => (l.fromId === fromId && l.toId === toId) || (l.fromId === toId && l.toId === fromId))) {
+        return { links: state.links };
+      }
+      
+      const newLink: EvidenceLink = { 
+        id, 
+        fromId, 
+        toId, 
+        type: LinkType.UNKNOWN, 
+        status: 'UNCHECKED' 
+      };
+      
+      return { links: [...state.links, newLink] };
     });
     return id;
   },
-  updateLinkType: (id, type) => set((state) => ({
-      links: state.links.map(l => l.id === id ? { ...l, type } : l)
-  })),
+  
+  updateLinkType: (id, type) => set((state) => {
+    const updatedLinks = state.links.map(l => 
+      l.id === id ? { ...l, type } : l
+    );
+    return { links: updatedLinks };
+  }),
+  
   removeLink: (id) => set((state) => ({
-      links: state.links.filter(l => l.id !== id)
+    links: state.links.filter(l => l.id !== id)
   })),
-  setLinkStatus: (id, status) => set((state) => ({
-      links: state.links.map(l => l.id === id ? { ...l, status } : l)
+  
+  setLinkStatus: (id, status, reasoning) => set((state) => ({
+    links: state.links.map(l => 
+      l.id === id ? { ...l, status, reasoning } : l
+    )
   })),
-  clearLinks: () => set({ links: [] }),
+  
+  clearLinks: () => set({ links: [], solved: false, solvProgress: 0 }),
+  
+  validateAndMarkLinks: () => set((state) => {
+    if (!state.deductionState) return state;
+    
+    // Validate each link
+    const validatedLinks = state.links.map(link => {
+      const validation = validateLink(link, state.deductionState!);
+      return {
+        ...link,
+        status: validation.isValid ? 'VALID' : 'INVALID' as const,
+        reasoning: validation.reason,
+      };
+    });
+    
+    // Check if case is solved
+    const solveResult = isCaseSolved(validatedLinks, state.deductionState);
+    
+    return {
+      links: validatedLinks,
+      solved: solveResult.solved,
+      solvProgress: solveResult.progress,
+    };
+  }),
   
   linkingFromId: null,
   setLinkingFromId: (id) => set({ linkingFromId: id }),
@@ -99,6 +174,9 @@ export const useGameStore = create<StoreState>((set) => ({
   setIsDraggingItem: (dragging) => set({ isDraggingItem: dragging }),
   radialMenu: null,
   setRadialMenu: (data) => set({ radialMenu: data }),
+
+  isPointerOnComputer: false,
+  setIsPointerOnComputer: (isOn) => set({ isPointerOnComputer: isOn }),
 
   setDocumentPage: (id, page) => set((state) => ({
     documentStates: {
@@ -112,6 +190,9 @@ export const useGameStore = create<StoreState>((set) => ({
         [id]: { ...state.documentStates[id], totalPages: total, currentPage: 0 } // Reset to 0 on init
     }
   })),
+
+  incrementTextureLoading: () => set((state) => ({ texturesLoadingCount: state.texturesLoadingCount + 1 })),
+  decrementTextureLoading: () => set((state) => ({ texturesLoadingCount: Math.max(0, state.texturesLoadingCount - 1) })),
 
   setView: (view) => set({ currentView: view }),
   setInspecting: (inspecting) => set({ isInspecting: inspecting }),
@@ -128,6 +209,13 @@ export const useGameStore = create<StoreState>((set) => ({
     next.add(clueId);
     return { uncoveredClues: next };
   }),
-  addToPrintQueue: (item) => set((state) => ({ printQueue: [...state.printQueue, item] })),
+  addToPrintQueue: (item) => set((state) => ({ 
+    printQueue: [...state.printQueue, { 
+      content: item.content, 
+      title: item.title, 
+      metadata: item.metadata,
+      reportId: item.reportId 
+    }] 
+  })),
   clearPrintQueue: () => set({ printQueue: [] }),
 }));

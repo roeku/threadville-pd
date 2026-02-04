@@ -162,7 +162,7 @@ interface OSContextType extends OSState {
 
     // New props for integration
     currentCase: CaseFile | null;
-    onPrint: (content: string, title?: string, metadata?: any) => void;
+    onPrint: (content: string, title?: string, metadata?: any, reportId?: string) => void;
     onLogOut: () => void;
 }
 
@@ -171,7 +171,7 @@ const OSContext = createContext<OSContextType | undefined>(undefined);
 export const OSProvider: React.FC<{
     children: ReactNode;
     currentCase: CaseFile | null;
-    onPrint: (content: string, title?: string, metadata?: any) => void;
+    onPrint: (content: string, title?: string, metadata?: any, reportId?: string) => void;
     onLogOut: () => void;
 }> = ({ children, currentCase, onPrint, onLogOut }) => {
     const [state, dispatch] = useReducer(osReducer, initialState);

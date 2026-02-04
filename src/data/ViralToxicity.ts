@@ -7,6 +7,131 @@ export const VIRAL_TOXICITY : CaseFile = {
     "briefing": "The internet was watching when Jaxson 'Jax' Vane, the world's most popular lifestyle streamer, collapsed live on camera during the launch of his signature energy drink, 'VaneGlory'. Just moments after cracking open the golden promotional can and taking a long swig, Jax began to convulse, foaming at the mouth before 2.4 million horrified viewers. The livestream cut to black, but not before the chat exploded with accusations. By the time paramedics arrived at the ultra-modern 'Prism Penthouse' content house, Jax was dead.\n\nDetective, the penthouse was locked down immediately. No one left the premises. The medical examiner has confirmed that Jax didn't die of natural causes; he was poisoned with a lethal dose of concentrated nicotine, likely extracted from vape fluids, which caused immediate cardiac arrest. The poison wasn't in the manufacturing batch of the drink—it was introduced at the scene. Five people had access to the staging area. You need to sift through the forensic timeline and motives to find the killer among the entourage.",
     "entities": [
         {
+            "id": "PROFILE-S1",
+            "type": EvidenceType.PHOTO,
+            "clues": [
+                "Primary suspect profile with forensic markers"
+            ],
+            "label": "Suspect Profile: Maya Torres",
+            "content": "SUSPECT DOSSIER\n\nName: Maya Torres\nRole: Personal Assistant\nBackground: Financial abuse; Jax hadn't paid her in six months and stole her idea for the beverage brand.\nAlibi: Claimed she was in the server room monitoring chat moderation logs when the collapse happened.\n\nForensic Profile:\nBlood Type: O+\nDNA Sample: CTAT-ATAG-CAAT-TTGA\nFingerprint: [Pending Analysis]",
+            "imageUrl": "PENDING",
+            "metadata": {
+                "templateId": "suspect-profile",
+                "location": "Case Files - Suspect Profiles"
+            },
+            "position": [
+                -0.25,
+                0.92,
+                0.15
+            ],
+            "rotation": [
+                0,
+                0.3,
+                0
+            ],
+            "description": "Complete forensic and background profile for Maya Torres"
+        },
+        {
+            "id": "PROFILE-S2",
+            "type": EvidenceType.PHOTO,
+            "clues": [
+                "Rival streamer with opportunity"
+            ],
+            "label": "Suspect Profile: Kairos",
+            "content": "SUSPECT DOSSIER\n\nName: Kairos\nRole: Rival Streamer\nBackground: Professional jealousy; losing his top sponsor to Jax's new brand.\nAlibi: Was on his own IRL stream in the adjacent room, confirmed by his VOD timestamp.\n\nForensic Profile:\nBlood Type: O+\nDNA Sample: [Pending Analysis]\nFingerprint: WHORL-ARCH-WHORL",
+            "imageUrl": "PENDING",
+            "metadata": {
+                "templateId": "suspect-profile",
+                "location": "Case Files - Suspect Profiles"
+            },
+            "position": [
+                -0.15,
+                0.94,
+                0.18
+            ],
+            "rotation": [
+                0,
+                0.2,
+                0
+            ],
+            "description": "Complete forensic and background profile for Kairos"
+        },
+        {
+            "id": "PROFILE-S3",
+            "type": EvidenceType.PHOTO,
+            "clues": [
+                "Corporate motive and forensic match to tissue"
+            ],
+            "label": "Suspect Profile: Elena Rostov",
+            "content": "SUSPECT DOSSIER\n\nName: Elena Rostov\nRole: Brand Manager\nBackground: Corporate risk; Jax was threatening to breach contract and sign with a competitor live on air.\nAlibi: Was on a conference call with the board of directors on the balcony.\n\nForensic Profile:\nBlood Type: A-\nDNA Sample: [Matched to blood on tissue]\nFingerprint: [Pending]",
+            "imageUrl": "PENDING",
+            "metadata": {
+                "templateId": "suspect-profile",
+                "location": "Case Files - Suspect Profiles"
+            },
+            "position": [
+                -0.05,
+                0.96,
+                0.2
+            ],
+            "rotation": [
+                0,
+                0.1,
+                0
+            ],
+            "description": "Complete forensic and background profile for Elena Rostov"
+        },
+        {
+            "id": "PROFILE-S4",
+            "type": EvidenceType.PHOTO,
+            "clues": [
+                "Chemistry knowledge and nicotine access"
+            ],
+            "label": "Suspect Profile: Dr. Aris Thorne",
+            "content": "SUSPECT DOSSIER\n\nName: Dr. Aris Thorne\nRole: Nutritionist/Chemist\nBackground: Personal vendetta; Jax's ex-boyfriend who was dumped publicly and humiliated.\nAlibi: Was in the kitchen preparing post-stream meals, captured on the smart-fridge security cam.\n\nForensic Profile:\nBlood Type: O+\nDNA Sample: [Pending Analysis]\nFingerprint: LOOP-LOOP-ARCH\nNote: Had access to concentrated nicotine via personal vaping supplies.",
+            "imageUrl": "PENDING",
+            "metadata": {
+                "templateId": "suspect-profile",
+                "location": "Case Files - Suspect Profiles"
+            },
+            "position": [
+                0.05,
+                0.98,
+                0.22
+            ],
+            "rotation": [
+                0,
+                -0.1,
+                0
+            ],
+            "description": "Complete forensic and background profile for Dr. Aris Thorne"
+        },
+        {
+            "id": "PROFILE-S5",
+            "type": EvidenceType.PHOTO,
+            "clues": [
+                "Technical expertise and access to staging area"
+            ],
+            "label": "Suspect Profile: Zoe Chen",
+            "content": "SUSPECT DOSSIER\n\nName: Zoe Chen\nRole: Technical Director\nBackground: Workplace toxicity; Jax frequently blamed her for technical failures and ruined her reputation.\nAlibi: Was behind the mixing desk controlling the camera switching during the broadcast.\n\nForensic Profile:\nBlood Type: O+\nDNA Sample: [Pending]\nFingerprint: [Pending]",
+            "imageUrl": "PENDING",
+            "metadata": {
+                "templateId": "suspect-profile",
+                "location": "Case Files - Suspect Profiles"
+            },
+            "position": [
+                0.15,
+                1.0,
+                0.24
+            ],
+            "rotation": [
+                0,
+                -0.2,
+                0
+            ],
+            "description": "Complete forensic and background profile for Zoe Chen"
+        },
+        {
             "id": "DOC-001",
             "type": EvidenceType.PAPER,
             "clues": [
@@ -76,7 +201,7 @@ export const VIRAL_TOXICITY : CaseFile = {
         },
         {
             "id": "OBJ-001",
-            "type": EvidenceType.OBJECT,
+            "type": EvidenceType.PAPER,
             "clues": [
                 "The physical vessel for the poison. It needs to be tested to see if the poison was in the drink or on the container."
             ],
@@ -87,8 +212,10 @@ export const VIRAL_TOXICITY : CaseFile = {
                 "date": "2023-11-14",
                 "notes": "Collected directly from the desk mat where the victim collapsed. Bagged and sealed for lab analysis. Chain of custody intact.",
                 "author": "CST L. Miller",
-                "fields": null,
-                "location": "Prism Penthouse - Streaming Desk (Sector A)"
+                "evidenceId": "OBJ-001",
+                "itemType": "Beverage Can - Physical Evidence",
+                "location": "Prism Penthouse - Streaming Desk (Sector A)",
+                "templateId": "evidence-document"
             },
             "position": [
                 0.3852764979198205,
@@ -139,7 +266,7 @@ export const VIRAL_TOXICITY : CaseFile = {
         },
         {
             "id": "OBJ-002",
-            "type": EvidenceType.OBJECT,
+            "type": EvidenceType.PAPER,
             "clues": [
                 "The cloth is damp and has a faint chemical odor. This is the murder weapon used to apply the poison to the can rim."
             ],
@@ -150,8 +277,11 @@ export const VIRAL_TOXICITY : CaseFile = {
                 "date": "October 24, 2023",
                 "notes": "Lab analysis confirms the oily residue is a lethal concentration of liquid nicotine, matching the toxin found in the victim's system. The gold particulate matches the exterior paint of the VaneGlory can. This cloth is the murder weapon used to apply the poison to the can rim.",
                 "author": "Forensics Unit",
-                "fields": null,
-                "location": "Maya Torres (Back Pocket)"
+                "evidenceId": "OBJ-002",
+                "itemType": "Cloth - Murder Weapon",
+                "forensicAnalysis": "Chemical analysis reveals 99% pure liquid nicotine saturation. Gold metallic particles match VaneGlory can exterior coating. This is the application vector for the poison.",
+                "location": "Maya Torres (Back Pocket)",
+                "templateId": "evidence-document"
             },
             "position": [
                 -0.1928567142436359,
@@ -169,13 +299,15 @@ export const VIRAL_TOXICITY : CaseFile = {
             "id": "SMP-001",
             "type": EvidenceType.FORENSIC_SAMPLE,
             "clues": [
-                "Identifies the user of the cloth. The DNA matches Maya Torres, proving she handled the cloth used to poison the can."
+                "Physical forensic sample collected from the murder weapon. Analyze in the Forensic OS to identify the handler."
             ],
             "label": "DNA Swab from Microfiber Cloth",
-            "content": "FORENSIC BIOLOGY REPORT\nCASE REF: VT-2024-JX\nSAMPLE ID: SMP-001\n\nITEM RECEIVED:\nOne (1) blue microfiber cleaning cloth collected from the Prism Penthouse staging area.\n\nEXAMINATION REQUESTED:\nDNA extraction and profiling to identify handler.\n\nANALYSIS:\nSample collected via swabbing from the central portion of the fabric, where skin contact pressure appeared highest. Epithelial cells were successfully isolated. Short Tandem Repeat (STR) analysis was performed to generate a genetic profile.\n\nRESULTS:\nA full single-source DNA profile was obtained. The profile indicates the cloth was handled extensively by a female contributor.\n\nCOMPARISON:\nThe evidence profile was compared against reference samples on file.\n- MATCH CONFIRMED: The profile corresponds to Maya Torres (Suspect S1).\n\nCONCLUSION:\nThe biological material on the microfiber cloth identifies Maya Torres as the primary handler.",
+            "content": "EVIDENCE COLLECTION RECORD\nSAMPLE ID: SMP-001\nCOLLECTED FROM: Blue Microfiber Cloth (OBJ-002)\n\nSAMPLE TYPE: Epithelial cells (DNA)\nCOLLECTION METHOD: Sterile swab from center of fabric\nCOLLECTOR: CSI L. Miller\nDATE/TIME: October 24, 2024 21:45\n\nDESCRIPTION:\nSwab sample taken from the central portion of the microfiber cloth where skin contact pressure appeared highest. Sample appears adequate for DNA profiling.\n\nSTATUS: Awaiting laboratory analysis\nCHAIN OF CUSTODY: Sealed and logged",
             "imageUrl": "PENDING",
             "metadata": {
-                "forensicType": "DNA"
+                "forensicType": "DNA",
+                "reportId": "DOC-DNA-001",
+                "reportLabel": "DNA Match Report: SMP-001"
             },
             "position": [
                 -0.3975560492400339,
@@ -187,11 +319,11 @@ export const VIRAL_TOXICITY : CaseFile = {
                 -0.7883741321536635,
                 0
             ],
-            "description": "Epithelial cells extracted from the center of the blue microfiber cloth.",
+            "description": "Epithelial cells extracted from the center of the blue microfiber cloth. Requires analysis.",
             "forensicData": {
                 "type": "DNA",
                 "value": "CTAT-ATAG-CAAT-TTGA",
-                "description": "Profile matches Suspect S1 (Maya Torres)."
+                "description": "DNA profile extracted from cloth. Run through database to find match."
             }
         },
         {
@@ -219,7 +351,7 @@ export const VIRAL_TOXICITY : CaseFile = {
         },
         {
             "id": "OBJ-003",
-            "type": EvidenceType.OBJECT,
+            "type": EvidenceType.PAPER,
             "clues": [
                 "Red Herring. Establishes a source of nicotine on set, making Aris a suspect due to availability of the chemical."
             ],
@@ -230,8 +362,11 @@ export const VIRAL_TOXICITY : CaseFile = {
                 "date": "Present Day",
                 "notes": "Field test confirms the tank contains a highly concentrated 50mg/ml nicotine salt solution mixed with vegetable glycerin. While legal for personal use in custom rigs, the liquid inside is toxic enough to cause cardiac arrest if ingested orally in a concentrated dose. This places a lethal amount of the poison directly in Thorne's possession.",
                 "author": "Dr. Aris Thorne",
-                "fields": null,
-                "location": "Dr. Aris Thorne's Leather Satchel (Side Pocket)"
+                "evidenceId": "OBJ-003",
+                "itemType": "Vaporizer Device",
+                "forensicAnalysis": "Contains 50mg/ml nicotine concentration. However, lab comparison shows this is diluted commercial blend, not the 99% pure concentrate found on murder weapon.",
+                "location": "Dr. Aris Thorne's Leather Satchel (Side Pocket)",
+                "templateId": "evidence-document"
             },
             "position": [
                 0.26427722083196914,
@@ -451,7 +586,7 @@ export const VIRAL_TOXICITY : CaseFile = {
             "name": "Maya Torres",
             "notes": "Personal Assistant",
             "bloodType": "O+",
-            "dnaSequence": "PENDING",
+            "dnaSequence": "CTAT-ATAG-CAAT-TTGA",
             "fingerprintPattern": "PENDING"
         },
         {
@@ -461,14 +596,14 @@ export const VIRAL_TOXICITY : CaseFile = {
             "notes": "Rival Streamer",
             "bloodType": "O+",
             "dnaSequence": "PENDING",
-            "fingerprintPattern": "PENDING"
+            "fingerprintPattern": "WHORL-ARCH-WHORL"
         },
         {
             "id": "S3",
             "bio": "Brand Manager. Corporate risk; Jax was threatening to breach contract and sign with a competitor live on air.. Alibi: Was on a conference call with the board of directors on the balcony.",
             "name": "Elena Rostov",
             "notes": "Brand Manager",
-            "bloodType": "O+",
+            "bloodType": "A-",
             "dnaSequence": "PENDING",
             "fingerprintPattern": "PENDING"
         },
@@ -479,7 +614,7 @@ export const VIRAL_TOXICITY : CaseFile = {
             "notes": "Nutritionist/Chemist",
             "bloodType": "O+",
             "dnaSequence": "PENDING",
-            "fingerprintPattern": "PENDING"
+            "fingerprintPattern": "LOOP-LOOP-ARCH"
         },
         {
             "id": "S5",

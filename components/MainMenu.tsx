@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { CaseFile } from '../types';
 import { Play, Loader2, FolderOpen, Shield } from 'lucide-react';
-import { THE_GLITCH_IN_THE_GALLERY } from '../src/data/TheGlitchInTheGallery';
-import { THE_GLASS } from '../src/data/TheGlass';
+import { VIRAL_TOXICITY } from '@/src/data/ViralToxicity';
 
 interface MainMenuProps {
     onStartCase: (caseData: CaseFile) => void;
@@ -18,8 +17,7 @@ export default function MainMenu({ onStartCase, onOpenAdmin }: MainMenuProps) {
         const fetchCases = async () => {
             // START LOCAL DATA INJECTION
             const localCases = [
-                { id: THE_GLITCH_IN_THE_GALLERY.caseId, title: THE_GLITCH_IN_THE_GALLERY.title, isLocal: true },
-                { id: THE_GLASS.caseId, title: THE_GLASS.title, isLocal: true },
+                { id: VIRAL_TOXICITY.caseId, title: VIRAL_TOXICITY.title, isLocal: true },
             ];
             // END LOCAL DATA INJECTION
 
@@ -44,7 +42,7 @@ export default function MainMenu({ onStartCase, onOpenAdmin }: MainMenuProps) {
     const handleCaseSelect = async (caseItem: { id: string, title: string, isLocal: boolean }) => {
         if (caseItem.isLocal) {
             // Use local case data directly
-            const localCase = caseItem.id === THE_GLITCH_IN_THE_GALLERY.caseId ? THE_GLITCH_IN_THE_GALLERY : THE_GLASS;
+            const localCase = VIRAL_TOXICITY;
             onStartCase(localCase);
         } else {
             // Fetch full case data for database cases

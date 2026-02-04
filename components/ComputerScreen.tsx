@@ -4,7 +4,7 @@ import { ForensicDesktop } from './os/ForensicDesktop';
 
 interface ComputerScreenProps {
     currentCase: CaseFile;
-    onPrint: (content: string, title?: string, metadata?: any) => void;
+    onPrint: (content: string, title?: string, metadata?: any, reportId?: string) => void;
     onLogOut: () => void;
     startApp?: string;
 }

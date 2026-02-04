@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Activity, CheckCircle2, HelpCircle, User, AlertCircle, Search, Printer } from 'lucide-react';
 import { useOS } from '../context/OSContext';
 import { Suspect } from '../../types';
+import { trackPuzzleInteraction, trackDocumentPrint } from '../../../services/gameProgressService';
+import { useGameStore } from '../../../stores/useGameStore';
 
 interface DnaSequencerProps {
     data?: {
@@ -11,6 +13,7 @@ interface DnaSequencerProps {
 
 export const DnaSequencer: React.FC<DnaSequencerProps> = ({ data }) => {
     const { currentCase, onPrint } = useOS();
+    const sessionId = useGameStore(state => state.sessionId);
     const [selectedSuspectId, setSelectedSuspectId] = useState<string | null>(null);
     const [analyzing, setAnalyzing] = useState(false);
 
@@ -122,6 +125,16 @@ export const DnaSequencer: React.FC<DnaSequencerProps> = ({ data }) => {
 
         const timestamp = new Date().toLocaleString();
 
+        // Use report definition from evidence metadata or case data when available
+        const matchingReport = currentCase?.entities.find(e =>
+            e.type === 'PAPER' &&
+            e.label?.toLowerCase().includes('dna match report') &&
+            e.metadata?.fields?.evidenceId === evidence.id
+        );
+
+        const reportId = evidence.metadata?.reportId || matchingReport?.id || `DOC-DNA-${evidence.id}`;
+        const reportLabel = evidence.metadata?.reportLabel || matchingReport?.label || `DNA Match Report: ${evidence.id}`;
+
         const reportData = {
             type: 'forensic-report',
             title: 'DNA Analysis Report',
@@ -138,11 +151,20 @@ export const DnaSequencer: React.FC<DnaSequencerProps> = ({ data }) => {
             status: isSuccess ? "MATCH FOUND" : "INCONCLUSIVE",
         };
 
+        console.log(`[Print] DNA Report ID: ${reportId}, Label: ${reportLabel}`);
+
         onPrint(
             `DNA Analysis Report: ${selectedSuspect.name} vs ${evidence.label}`,
-            `DNA Report`,
-            reportData
+            reportLabel,
+            reportData,
+            reportId
         );
+
+        // Track puzzle completion and document print
+        if (sessionId) {
+            trackPuzzleInteraction(sessionId, 'DNA_SEQUENCER', evidence.id, evidence.label, isSuccess);
+            trackDocumentPrint(sessionId, reportId, reportLabel, 'FORENSIC_REPORT');
+        }
     };
 
     if (!evidence || !isDnaEvidence) {

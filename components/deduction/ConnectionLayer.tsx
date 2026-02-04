@@ -11,7 +11,8 @@ interface Props {
     itemRefs: React.MutableRefObject<Record<string, RapierRigidBody | null>>;
     evidence: EvidenceItem[];
     interaction: InteractionState;
-    parentRef?: React.RefObject<THREE.Group>; // To transform world coords to local
+    parentRef?: React.RefObject<THREE.Group>;
+    onConnectionClick?: (connectionId: string) => void;
 }
 
 const getPinOffset = (item?: EvidenceItem) => {
@@ -41,15 +42,14 @@ const getPinOffset = (item?: EvidenceItem) => {
     return new THREE.Vector3(0, 0.02, -height / 2 + 0.02);
 }
 
-const SingleConnection = ({ conn, itemRefs, evidence, parentRef }: { conn: EvidenceLink, itemRefs: any, evidence: EvidenceItem[], parentRef?: any }) => {
+const SingleConnection = ({ conn, itemRefs, evidence, parentRef, onConnectionClick }: { conn: EvidenceLink, itemRefs: any, evidence: EvidenceItem[], parentRef?: any, onConnectionClick?: (id: string) => void }) => {
     const lineRef = useRef<any>(null);
+    const hitAreaRef = useRef<any>(null);
+    const [hovered, setHovered] = React.useState(false);
+
     const startVec = useMemo(() => new THREE.Vector3(), []);
     const endVec = useMemo(() => new THREE.Vector3(), []);
     const midVec = useMemo(() => new THREE.Vector3(), []);
-    
-    // PERFORMANCE: Cache last positions to avoid unnecessary updates
-    const lastPositions = useRef({ start: new THREE.Vector3(), end: new THREE.Vector3() });
-    const updateThreshold = 0.001; // Only update if items moved more than this
 
     const fromItem = useMemo(() => evidence.find(e => e.id === conn.fromId), [evidence, conn.fromId]);
     const toItem = useMemo(() => evidence.find(e => e.id === conn.toId), [evidence, conn.toId]);
@@ -86,65 +86,77 @@ const SingleConnection = ({ conn, itemRefs, evidence, parentRef }: { conn: Evide
         const startBody = itemRefs.current[conn.fromId];
         const endBody = itemRefs.current[conn.toId];
 
-        if (startBody && endBody) {
-            const p1 = startBody.translation();
-            const p2 = endBody.translation();
-            
-            // PERFORMANCE: Skip update if items haven't moved significantly
-            const moved = (
-                Math.abs(p1.x - lastPositions.current.start.x) > updateThreshold ||
-                Math.abs(p1.y - lastPositions.current.start.y) > updateThreshold ||
-                Math.abs(p1.z - lastPositions.current.start.z) > updateThreshold ||
-                Math.abs(p2.x - lastPositions.current.end.x) > updateThreshold ||
-                Math.abs(p2.y - lastPositions.current.end.y) > updateThreshold ||
-                Math.abs(p2.z - lastPositions.current.end.z) > updateThreshold
-            );
-            
-            if (!moved) return;
-            
-            // Update cached positions
-            lastPositions.current.start.set(p1.x, p1.y, p1.z);
-            lastPositions.current.end.set(p2.x, p2.y, p2.z);
-            
-            const r1 = startBody.rotation();
-            const r2 = endBody.rotation();
+        if (!startBody || !endBody) return;
 
-            // Pin Offset Logic
-            const pinLocal1 = getPinOffset(fromItem);
-            const pinLocal2 = getPinOffset(toItem);
+        const p1 = startBody.translation();
+        const p2 = endBody.translation();
+        const r1 = startBody.rotation();
+        const r2 = endBody.rotation();
 
-            startVec.set(p1.x, p1.y, p1.z).add(pinLocal1.clone().applyQuaternion(new THREE.Quaternion(r1.x, r1.y, r1.z, r1.w)));
-            endVec.set(p2.x, p2.y, p2.z).add(pinLocal2.clone().applyQuaternion(new THREE.Quaternion(r2.x, r2.y, r2.z, r2.w)));
+        // Pin Offset Logic
+        const pinLocal1 = getPinOffset(fromItem);
+        const pinLocal2 = getPinOffset(toItem);
 
-            // Transform to Local Space if parentRef provided
-            if (parentRef?.current) {
-                parentRef.current.worldToLocal(startVec);
-                parentRef.current.worldToLocal(endVec);
-            }
+        startVec.set(p1.x, p1.y, p1.z).add(pinLocal1.clone().applyQuaternion(new THREE.Quaternion(r1.x, r1.y, r1.z, r1.w)));
+        endVec.set(p2.x, p2.y, p2.z).add(pinLocal2.clone().applyQuaternion(new THREE.Quaternion(r2.x, r2.y, r2.z, r2.w)));
 
-            // Catenary
-            const dist = startVec.distanceTo(endVec);
-            const droop = Math.min(dist * 0.2, 0.5);
+        // Transform to Local Space if parentRef provided
+        if (parentRef?.current) {
+            parentRef.current.worldToLocal(startVec);
+            parentRef.current.worldToLocal(endVec);
+        }
 
-            midVec.lerpVectors(startVec, endVec, 0.5);
-            midVec.y -= droop;
-            midVec.z -= 0.15; // Pull out from board (Towards Camera/Negative Z in Board Space)
+        // Catenary
+        const dist = startVec.distanceTo(endVec);
+        const droop = Math.min(dist * 0.2, 0.5);
 
-            lineRef.current.setPoints(startVec, endVec, midVec);
+        midVec.lerpVectors(startVec, endVec, 0.5);
+        midVec.y -= droop;
+        midVec.z += 0.05; // Pull forward from board surface
+
+        lineRef.current.setPoints(startVec, endVec, midVec);
+        if (hitAreaRef.current) {
+            hitAreaRef.current.setPoints(startVec, endVec, midVec);
         }
     });
 
+    const effectiveWidth = hovered ? width * 2.5 : width;
+
     return (
-        <QuadraticBezierLine
-            ref={lineRef}
-            start={[0, 0, 0]} end={[0, 0, 0]} mid={[0, 0, 0]}
-            color={color}
-            lineWidth={width}
-            dashed={dash}
-            dashScale={10}
-            opacity={opacity}
-            transparent
-        />
+        <group>
+            {/* Visual Line */}
+            <QuadraticBezierLine
+                ref={lineRef}
+                start={[0, 0, 0]} end={[0, 0, 0]} mid={[0, 0, 0]}
+                color={hovered ? '#ffffff' : color}
+                lineWidth={effectiveWidth}
+                dashed={dash}
+                dashScale={10}
+                opacity={opacity}
+                transparent
+            />
+            {/* Hit Area Line (Invisible, Thicker) */}
+            <QuadraticBezierLine
+                ref={hitAreaRef}
+                start={[0, 0, 0]} end={[0, 0, 0]} mid={[0, 0, 0]}
+                lineWidth={25}
+                opacity={0}
+                transparent
+                depthWrite={false}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onConnectionClick?.(conn.id);
+                }}
+                onPointerOver={() => {
+                    setHovered(true);
+                    document.body.style.cursor = 'pointer';
+                }}
+                onPointerOut={() => {
+                    setHovered(false);
+                    document.body.style.cursor = 'auto';
+                }}
+            />
+        </group>
     )
 }
 
@@ -214,7 +226,7 @@ const DraggingConnection = ({ fromId, mousePos, itemRefs, evidence, parentRef }:
 
             midVec.lerpVectors(startVec, endVec, 0.5);
             midVec.y -= droop;
-            midVec.z -= 0.15;
+            midVec.z += 0.05; // Pull forward from board surface
 
             lineRef.current.setPoints(startVec, endVec, midVec);
         }
@@ -235,11 +247,11 @@ const DraggingConnection = ({ fromId, mousePos, itemRefs, evidence, parentRef }:
 
 }
 
-const ConnectionLayer: React.FC<Props> = ({ connections, itemRefs, evidence, interaction, parentRef }) => {
+const ConnectionLayer: React.FC<Props> = ({ connections, itemRefs, evidence, interaction, parentRef, onConnectionClick }) => {
     return (
         <group>
             {connections.map(conn => (
-                <SingleConnection key={conn.id} conn={conn} itemRefs={itemRefs} evidence={evidence} parentRef={parentRef} />
+                <SingleConnection key={conn.id} conn={conn} itemRefs={itemRefs} evidence={evidence} parentRef={parentRef} onConnectionClick={onConnectionClick} />
             ))}
 
             {interaction.linkingFromId && (

@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Scan, Target, Check, HelpCircle, User, Fingerprint, Printer } from 'lucide-react';
 import { useOS } from '../context/OSContext';
+import { trackPuzzleInteraction, trackDocumentPrint } from '../../../services/gameProgressService';
+import { useGameStore } from '../../../stores/useGameStore';
 
 interface FingerprintScannerProps {
     data?: {
@@ -10,6 +12,7 @@ interface FingerprintScannerProps {
 
 export const FingerprintScanner: React.FC<FingerprintScannerProps> = ({ data }) => {
     const { currentCase, onPrint } = useOS();
+    const sessionId = useGameStore(state => state.sessionId);
     const [selectedSuspectId, setSelectedSuspectId] = useState<string | null>(null);
     const [overlayPos, setOverlayPos] = useState({ x: 0, y: 0 });
     const [rotation, setRotation] = useState(0);
@@ -41,6 +44,17 @@ export const FingerprintScanner: React.FC<FingerprintScannerProps> = ({ data }) 
         if (!selectedSuspect || !evidence) return;
         const timestamp = new Date().toLocaleString();
 
+        // Use report definition from evidence metadata or case data when available
+        const matchingReport = currentCase?.entities.find(e =>
+            e.type === 'PAPER' &&
+            e.label?.toLowerCase().includes('fingerprint') &&
+            e.label?.toLowerCase().includes('report') &&
+            e.metadata?.fields?.evidenceId === evidence.id
+        );
+
+        const reportId = evidence.metadata?.reportId || matchingReport?.id || `DOC-FP-${evidence.id}`;
+        const reportLabel = evidence.metadata?.reportLabel || matchingReport?.label || `Fingerprint Match Report: ${evidence.label}`;
+
         const reportData = {
             type: 'forensic-report',
             caseNumber: currentCase?.id || "UNKNOWN",
@@ -57,12 +71,20 @@ export const FingerprintScanner: React.FC<FingerprintScannerProps> = ({ data }) 
             status: isSuccess ? "MATCH FOUND" : "INCONCLUSIVE",
         };
 
+        console.log(`[Print] Fingerprint Report ID: ${reportId}, Label: ${reportLabel}`);
+
         onPrint(
             `Fingerprint Report: ${selectedSuspect.name} vs ${evidence.label}`,
-            `Fingerprint Report`,
-            reportData
+            reportLabel,
+            reportData,
+            reportId
         );
     };
+    // Track puzzle completion and document print
+    if (sessionId) {
+        trackPuzzleInteraction(sessionId, 'FINGERPRINT_SCANNER', evidence.id, evidence.label, isSuccess);
+        trackDocumentPrint(sessionId, reportId, reportLabel, 'FORENSIC_REPORT');
+    }
 
     // Reset overlay when suspect changes
     useEffect(() => {
@@ -198,7 +220,7 @@ export const FingerprintScanner: React.FC<FingerprintScannerProps> = ({ data }) 
                             onPointerDown={handlePointerDown}
                         >
                             <div className={`p-4 border-2 border-dashed rounded-full ${isSuccess ? 'border-emerald-500 bg-emerald-500/10' :
-                                    isMismatch ? 'border-red-500 bg-red-500/10' : 'border-amber-500/50'
+                                isMismatch ? 'border-red-500 bg-red-500/10' : 'border-amber-500/50'
                                 }`}>
                                 <FingerprintPath
                                     seed={selectedSuspect.fingerprintPattern}

@@ -17,6 +17,8 @@ import { HandwrittenNoteTemplate } from '../../components/templates/HandwrittenN
 import { InternalMemoTemplate } from '../../components/templates/InternalMemoTemplate';
 import { LetterheadPageTemplate } from '../../components/templates/LetterheadPageTemplate';
 import { ForensicReportTemplate } from '../../components/templates/ForensicReportTemplate';
+import { CaseCompletionTemplate } from '../../components/templates/CaseCompletionTemplate';
+import EvidenceDocumentTemplate from '../../components/templates/EvidenceDocumentTemplate';
 import {
     AutopsyReportData,
     BankStatementData,
@@ -34,7 +36,8 @@ import {
     HandwrittenNoteData,
     InternalMemoData,
     ForensicReportData,
-    ServerLogData
+    ServerLogData,
+    CaseCompletionData
 } from './types';
 
 export interface TemplateContext {
@@ -355,6 +358,59 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateDefinition> = {
                 status: getValue('status', "PENDING")
             };
             return <ForensicReportTemplate data={forensicData} />;
+        }
+    },
+    'case-completion': {
+        render: ({ getValue }) => {
+            const completionData: CaseCompletionData = {
+                caseTitle: getValue('caseTitle', "Unknown Case"),
+                caseStatus: getValue('caseStatus', "UNSOLVED"),
+                timeToComplete: getValue('timeToComplete', "0m 0s"),
+                confirmedLinks: getValue('confirmedLinks', 0),
+                criticalLinks: getValue('criticalLinks', 0),
+                disputedLinks: getValue('disputedLinks', 0),
+                documentsFiled: getValue('documentsFiled', 0),
+                forensicTasksCompleted: getValue('forensicTasksCompleted', "0/0"),
+                dateFiled: getValue('dateFiled', new Date().toLocaleDateString()),
+                investigatorId: getValue('investigatorId', "DET-UNKNOWN"),
+                solutionReasoning: getValue('solutionReasoning', undefined),
+                averageCompletionTime: getValue('averageCompletionTime', undefined)
+            };
+            return <CaseCompletionTemplate data={completionData} />;
+        }
+    },
+    'evidence-document': {
+        render: ({ getValue, getBodyFallback, getTitleFallback }) => {
+            const evidenceData = {
+                label: getTitleFallback(),
+                evidenceId: getValue('evidenceId', 'EVD-UNKNOWN'),
+                itemType: getValue('itemType', 'Physical Object'),
+                description: getBodyFallback(),
+                location: getValue('location', 'Unknown'),
+                collectedBy: getValue('collectedBy', getValue('author', 'CSI Unit')),
+                dateCollected: getValue('dateCollected', getValue('date', 'Not Recorded')),
+                chainOfCustody: getValue('chainOfCustody', 'Intact'),
+                notes: getValue('notes', undefined),
+                forensicAnalysis: getValue('forensicAnalysis', undefined)
+            };
+            return <EvidenceDocumentTemplate data={evidenceData} />;
+        }
+    },
+    'suspect-profile': {
+        render: ({ getValue, getBodyFallback, getTitleFallback }) => {
+            const profileData = {
+                label: getTitleFallback(),
+                evidenceId: getValue('suspectId', getValue('id', 'SUSPECT-UNKNOWN')),
+                itemType: 'Suspect Profile',
+                description: getBodyFallback(),
+                location: getValue('location', 'Case Files - Suspect Profiles'),
+                collectedBy: getValue('investigator', 'Detective Unit'),
+                dateCollected: getValue('date', new Date().toLocaleDateString()),
+                chainOfCustody: 'Case File',
+                notes: getValue('notes', undefined),
+                forensicAnalysis: getValue('forensicProfile', undefined)
+            };
+            return <EvidenceDocumentTemplate data={profileData} />;
         }
     }
 };

@@ -12,7 +12,7 @@ import { getTemplateForEvidence } from '../services/templateManager';
 
 const DeductionPin = React.memo(({ onClick, visible }: { onClick: (e: any) => void, visible: boolean }) => {
   const [hover, setHover] = useState(false);
-  
+
   // PERFORMANCE: Single material that we update instead of switching
   const material = useMemo(() => new THREE.MeshStandardMaterial({
     color: "#aa0000",
@@ -20,7 +20,7 @@ const DeductionPin = React.memo(({ onClick, visible }: { onClick: (e: any) => vo
     emissiveIntensity: 0,
     side: THREE.DoubleSide,
   }), []);
-  
+
   // Update material properties on hover instead of switching materials
   useEffect(() => {
     if (material) {
@@ -29,7 +29,7 @@ const DeductionPin = React.memo(({ onClick, visible }: { onClick: (e: any) => vo
       material.needsUpdate = true;
     }
   }, [hover, material]);
-  
+
   return (
     <group visible={visible}>
       <mesh
@@ -60,10 +60,11 @@ interface EvidenceObjectProps {
   isPinned: boolean;
   onPin: (pinned: boolean) => void;
   onPinClick?: (id: string, pos: THREE.Vector3) => void; // New prop
+  sceneLiftY?: number;
 }
 
 const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<RapierRigidBody>) => {
-  const { item, isFocused, onFocus, onUnfocus, isPinned, onPin, onPinClick } = props;
+  const { item, isFocused, onFocus, onUnfocus, isPinned, onPin, onPinClick, sceneLiftY = 0 } = props;
   const localRef = useRef<RapierRigidBody>(null);
   useImperativeHandle(ref, () => localRef.current!);
   // Note: this assumes localRef is populated. Rapier might load async? usually fine.
@@ -148,9 +149,9 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
       let targetPos: THREE.Vector3 | null = null;
 
       // Define Wall/Board Plane (Z-facing) and Desk Plane (Y-facing)
-      // Board is at Z ~ 0.48. Normal points to -Z (towards camera).
-      // Plane equation: -z + 0.48 = 0  => z = 0.48
-      const boardPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0.48);
+      // Board is at Z ~ 0.38, evidence placed at Z ~ 0.35 (in front). Normal points to -Z (towards camera).
+      // Plane equation: -z + 0.35 = 0  => z = 0.35
+      const boardPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0.38);
 
       const deskPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -currentPos.y);
 
@@ -159,7 +160,7 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
         const hit = new THREE.Vector3();
         raycaster.ray.intersectPlane(boardPlane, hit);
         if (hit) {
-          targetPos = new THREE.Vector3(hit.x, hit.y, 0.48);
+          targetPos = new THREE.Vector3(hit.x, hit.y, 0.4);
           // Orient flat against board
           targetRotation.current.setFromEuler(new THREE.Euler(Math.PI / 2, 0, Math.PI));
           if (meshRef.current) meshRef.current.scale.set(1, 1, 1);
@@ -187,7 +188,7 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
 
         } else if (hasBoardHit) {
           // We are projecting onto the wall part
-          targetPos = new THREE.Vector3(boardHit.x, boardHit.y, 0.48);
+          targetPos = new THREE.Vector3(boardHit.x, boardHit.y, 0.38);
           // Orient flat against board
           targetRotation.current.setFromEuler(new THREE.Euler(Math.PI / 2, Math.PI, 0));
           if (meshRef.current) meshRef.current.scale.set(1, 1, 1);
@@ -317,13 +318,19 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
       const pos = rigidBody.current.translation();
       // Camera is at z ~ -1.25. Board is at z ~ 0.6.
       // So "near board" is z > 0.
-      const isOnBoard = pos.z > 0.2 && pos.y > 1.0;
+      const boardHalfWidth = BOARD_WIDTH * 0.5;
+      const boardHalfHeight = BOARD_HEIGHT * 0.5;
+      const withinBoardX = pos.x >= BOARD_CENTER_X - boardHalfWidth && pos.x <= BOARD_CENTER_X + boardHalfWidth;
+      const withinBoardY = pos.y >= BOARD_CENTER_Y - boardHalfHeight && pos.y <= BOARD_CENTER_Y + boardHalfHeight;
+      const withinBoardZ = Math.abs(pos.z - BOARD_CENTER_Z) <= BOARD_DEPTH_TOLERANCE;
+
+      const isOnBoard = withinBoardX && withinBoardY && withinBoardZ;
 
       if (isOnBoard) {
         if (!isPinned) {
           onPin(true);
           // Snap to board surface (Board front face ~ 0.5)
-          rigidBody.current.setTranslation({ x: pos.x, y: pos.y, z: 0.48 }, true);
+          rigidBody.current.setTranslation({ x: pos.x, y: pos.y, z: 0.38 }, true);
           // Fixed rotation facing camera (Top of paper becomes Top of board)
           const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, Math.PI));
           rigidBody.current.setRotation(q, true);
@@ -433,35 +440,45 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
 
   // Safe desk position to place documents
   const DESK_X_CENTER = 0;
-  const DESK_Y_CENTER = 1.2;
+  const DESK_Y_CENTER = 1.2 + sceneLiftY;
   const DESK_Z_CENTER = 0.1;
   const DESK_DROP_HEIGHT = 0.15; // Height above desk surface
-  const FALL_THRESHOLD_Y = 0.3; // If document falls below this, reset it
+  const FALL_THRESHOLD_Y = 0.3 + sceneLiftY; // If document falls below this, reset it
+
+  // Board bounds (match default scene layout in GameScene)
+  const BOARD_CENTER_X = 0.2;
+  const BOARD_CENTER_Y = 1.25 + sceneLiftY;
+  const BOARD_CENTER_Z = 0.4;
+  const BOARD_WIDTH = 10 * 0.15;
+  const BOARD_HEIGHT = 6 * 0.15;
+  const BOARD_DEPTH_TOLERANCE = 0.08;
 
   const [generatedMaps, setGeneratedMaps] = useState<THREE.Texture[]>([]);
   // Use store for pagination state so HUD can access it
   const documentStates = useGameStore(state => state.documentStates);
   const setDocumentTotalPages = useGameStore(state => state.setDocumentTotalPages);
+  const incrementTextureLoading = useGameStore(state => state.incrementTextureLoading);
+  const decrementTextureLoading = useGameStore(state => state.decrementTextureLoading);
   const currentPage = documentStates[item.id]?.currentPage || 0;
-  
+
   // PERFORMANCE: Memoize materials to avoid recreation on every render
   const paperBaseMaterial = useMemo(() => new THREE.MeshStandardMaterial({
     color: "#fdfdfd",
     roughness: 0.9,
     metalness: 0,
   }), []);
-  
+
   const photoBaseMaterial = useMemo(() => new THREE.MeshStandardMaterial({
     color: "#fff",
     roughness: 0.5,
   }), []);
-  
+
   // PERFORMANCE: Single wireframe material that we update instead of recreating
   const borderWireframeMaterial = useMemo(() => new THREE.MeshBasicMaterial({
     color: borderColor,
     wireframe: true,
   }), []);
-  
+
   // Update border material color on hover instead of recreating material
   useEffect(() => {
     if (borderWireframeMaterial) {
@@ -485,6 +502,9 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
       // PRIORITY FIX: Resolve Template ID robustly
       const tid = getTemplateForEvidence(item);
 
+      // Track that this evidence is starting texture load
+      incrementTextureLoading();
+
       renderDocumentToTexture(tid, data).then((urls) => {
         // urls is string[]
         Promise.all(urls.map((url) => {
@@ -500,8 +520,12 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
         })).then((textures) => {
           setGeneratedMaps(textures);
           setDocumentTotalPages(item.id, textures.length);
+          decrementTextureLoading();
         });
-      }).catch(err => console.error("Texture Gen Error", err));
+      }).catch(err => {
+        console.error("Texture Gen Error", err);
+        decrementTextureLoading();
+      });
     } else {
       setGeneratedMaps([]);
     }
@@ -528,6 +552,20 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
     }
   }, [isFocused, isPinned]);
 
+  // Snap pinned items to the board pose on first placement and on reload
+  useEffect(() => {
+    if (!rigidBody.current || !isPinned || isFocused) return;
+
+    const pos = rigidBody.current.translation();
+    rigidBody.current.setTranslation({ x: pos.x, y: pos.y, z: 0.38 }, true);
+
+    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, Math.PI));
+    rigidBody.current.setRotation(q, true);
+
+    rigidBody.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    rigidBody.current.setAngvel({ x: 0, y: 0, z: 0 }, true);
+  }, [isPinned, isFocused]);
+
 
   return (
     <RigidBody
@@ -542,7 +580,7 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
     >
       <group
         ref={meshRef}
-        onPointerOver={() => !isDragging && setHovered(true)}
+        onPointerOver={() => !isDragging && currentView === 'BOARD' && setHovered(true)}
         onPointerOut={() => setHovered(false)}
         onWheel={(e) => {
           if (isFocused) {
@@ -553,15 +591,18 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
           }
         }}
         onPointerMove={(e) => {
-          if (currentView === 'COMPUTER') return;
+          // Allow interaction in DESK and BOARD (not in COMPUTER or EVIDENCE)
+          if (currentView === 'COMPUTER' || currentView === 'EVIDENCE') return;
           onPointerMove(e);
         }}
         onPointerDown={(e) => {
-          if (currentView === 'COMPUTER') return;
+          // Allow interaction in DESK and BOARD (not in COMPUTER or EVIDENCE)
+          if (currentView === 'COMPUTER' || currentView === 'EVIDENCE') return;
           onPointerDown(e);
         }}
         onPointerUp={(e) => {
-          if (currentView === 'COMPUTER') return;
+          // Allow interaction in DESK and BOARD (not in COMPUTER or EVIDENCE)
+          if (currentView === 'COMPUTER' || currentView === 'EVIDENCE') return;
           onPointerUp(e);
         }}
         onClick={(e) => e.stopPropagation()}

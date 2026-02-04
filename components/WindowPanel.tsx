@@ -35,6 +35,22 @@ const getSharedShaderMaterial = () => {
           return fract(sin(dot(inputValue, vec2(123.456, 43.12))) * seed);
       }
 
+      // Frost/fog effect that obscures background
+      float FrostEffect(vec2 uv) {
+          // Multiple layers of noise for organic frost
+          float frost = 0.0;
+          
+          // Large scale frost patches
+          frost += sin(uv.x * 3.0 + u_time * 0.1) * cos(uv.y * 2.5) * 0.3;
+          frost += sin(uv.x * 5.0 - u_time * 0.05) * cos(uv.y * 4.0) * 0.2;
+          
+          // Fine detail frost
+          frost += Random21(uv * 10.0, 42.0) * 0.15;
+          frost += Random21(uv * 20.0, 99.0) * 0.08;
+          
+          return clamp(frost, 0.0, 1.0);
+      }
+
       // Generate drops as distortions, that can be applied to UV coordinates
       vec2 Drops(vec2 uv, float seed) {
           // Randomly move everything
@@ -85,7 +101,7 @@ const getSharedShaderMaterial = () => {
               drops += Drops(uv, 42424.43 + float(i) * 12313.432);
           }
           
-          // --- RENDER AS TRANSPARENT OVERLAY ---
+          // --- RENDER AS FROSTED WINDOW ---
           
           float dropStrength = length(drops);
           
@@ -97,26 +113,21 @@ const getSharedShaderMaterial = () => {
           glassColor += vec3(0.1) * reflection;
 
           // Simple fake lighting on drops
-          // We assume light comes from top-left (1,1)
-          // drops vector points to center of drop, so it acts like a normal on the XY plane
           vec2 lightDir = normalize(vec2(1.0, 1.0));
           float highlight = dot(normalize(drops + vec2(0.0001)), lightDir); 
           highlight = clamp(highlight, 0.0, 1.0);
-          highlight = pow(highlight, 4.0); // Sharp specular
+          highlight = pow(highlight, 4.0);
           
-          // Final Color
-          vec3 finalColor = glassColor;
+          // Final Color - subtle glass tint, let the blurred background show through
+          vec3 tintColor = vec3(0.1, 0.15, 0.2); // Dark blue-ish tint for night
+          vec3 finalColor = mix(glassColor, tintColor, 0.3);
           
-          // Add highlights (white)
+          // Add highlights from rain drops
           finalColor += vec3(1.0) * highlight * 2.0;
 
-          // Alpha mixing
-          // Base glass alpha
-          float baseAlpha = 0.2; 
-          // Drop alpha (higher where drops are stronger)
-          float dropAlpha = smoothstep(0.0, 0.05, dropStrength) * 0.8;
-          
-          float finalAlpha = max(baseAlpha, dropAlpha);
+          // Alpha mixing - mostly transparent glass, opaque where rain drops are
+          float baseOpacity = 0.1; // Very clear glass
+          float finalAlpha = clamp(baseOpacity + dropStrength, 0.0, 1.0);
 
           gl_FragColor = vec4(finalColor, finalAlpha);
       }
@@ -132,7 +143,7 @@ const getSharedShaderMaterial = () => {
 // PERFORMANCE: Use a singleton pattern to ensure only one manager exists
 const WindowTimeManager = (() => {
     let instance: (() => null) | null = null;
-    
+
     return () => {
         if (!instance) {
             instance = () => {
@@ -149,18 +160,18 @@ const WindowTimeManager = (() => {
 
 const WindowPanelComponent = ({ position, rotation, width = 3, height = 4 }: { position: [number, number, number], rotation?: [number, number, number], width?: number, height?: number }) => {
     const meshRef = useRef<THREE.Mesh>(null);
-    
+
     // Get shared material instance
     const shaderMaterial = useMemo(() => getSharedShaderMaterial(), []);
-    
+
     // PERFORMANCE: Memoize frame material to avoid recreation
-    const frameMaterial = useMemo(() => 
-        new THREE.MeshStandardMaterial({ color: "#1a1a1a", roughness: 0.8 }), 
-    []);
+    const frameMaterial = useMemo(() =>
+        new THREE.MeshStandardMaterial({ color: "#1a1a1a", roughness: 0.8 }),
+        []);
 
     return (
         <group position={position} rotation={rotation}>
-            {/* Glass Pane */}
+            {/* Glass Pane with Frosted Effect */}
             <mesh ref={meshRef} frustumCulled>
                 <planeGeometry args={[width, height]} />
                 <primitive object={shaderMaterial} attach="material" />
@@ -187,7 +198,7 @@ const WindowPanelComponent = ({ position, rotation, width = 3, height = 4 }: { p
                 <boxGeometry args={[0.1, height, 0.1]} />
                 <primitive object={frameMaterial} attach="material" />
             </mesh>
-            
+
             {/* Mount time manager in first panel only */}
             <WindowTimeManager />
         </group>

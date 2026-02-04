@@ -8,7 +8,7 @@ import { useGameStore } from '../../stores/useGameStore';
 
 interface ForensicDesktopProps {
     currentCase: CaseFile | null;
-    onPrint: (content: string, title?: string, metadata?: any) => void;
+    onPrint: (content: string, title?: string, metadata?: any, reportId?: string) => void;
     onLogOut: () => void;
     startApp?: string;
 }
@@ -26,6 +26,10 @@ const OSIntegration: React.FC<{ startApp?: string }> = ({ startApp }) => {
 
     useEffect(() => {
         if (!focusedItemId || !currentCase) return;
+
+        // Only auto-open apps when in COMPUTER or EVIDENCE view
+        const { currentView } = useGameStore.getState();
+        if (currentView !== 'COMPUTER' && currentView !== 'EVIDENCE') return;
 
         const entity = currentCase.entities.find(e => e.id === focusedItemId);
         if (entity?.forensicData) {
@@ -52,8 +56,23 @@ const OSIntegration: React.FC<{ startApp?: string }> = ({ startApp }) => {
 };
 
 export const ForensicDesktop: React.FC<ForensicDesktopProps> = ({ currentCase, onPrint, onLogOut, startApp }) => {
+    const setIsPointerOnComputer = useGameStore((state) => state.setIsPointerOnComputer);
+    const handleOSClick = () => {
+        const { currentView, setView } = useGameStore.getState();
+        if (currentView !== 'COMPUTER') {
+            console.log('[ViewChange][ForensicDesktop] click', { from: currentView, to: 'COMPUTER' });
+            setView('COMPUTER');
+        }
+    };
+
     return (
-        <div className="w-full h-full bg-[#050505] flex items-center justify-center font-sans select-none relative">
+        <div
+            className="w-full h-full bg-[#050505] flex items-center justify-center font-sans relative"
+            onClick={handleOSClick}
+            onPointerEnter={() => setIsPointerOnComputer(true)}
+            onPointerLeave={() => setIsPointerOnComputer(false)}
+            onPointerDown={() => setIsPointerOnComputer(true)}
+        >
             <OSProvider currentCase={currentCase} onPrint={onPrint} onLogOut={onLogOut}>
                 <OSIntegration startApp={startApp} />
                 <div className="absolute inset-0 bg-slate-900 overflow-hidden flex flex-col">

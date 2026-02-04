@@ -1,15 +1,16 @@
-import React, { useRef, useMemo } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import React, { useRef, useMemo, useEffect } from 'react';
 import { RigidBody, RapierRigidBody } from '@react-three/rapier';
-import { RoundedBox, Text } from '@react-three/drei';
+import { RoundedBox, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGameStore } from '../stores/useGameStore';
 import ConnectionLayer from './deduction/ConnectionLayer';
 import RadialMenu from './deduction/RadialMenu';
 import VerifySwitch from './deduction/VerifySwitch';
-import { SOLUTION_PATH } from './deduction/constants';
 import { LinkType } from '../types/deduction';
 import { EvidenceItem } from '../types';
+import { useControls } from 'leva';
+import { isCaseSolved } from '../services/deductionService';
+import { trackConnection } from '../services/gameProgressService';
 
 interface InvestigationBoardProps {
     itemRefs?: React.MutableRefObject<Record<string, RapierRigidBody | null>>;
@@ -21,19 +22,37 @@ interface InvestigationBoardProps {
 const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evidence, focusedItemId, setFocusedItemId }) => {
     const groupRef = useRef<THREE.Group>(null);
     const {
-        links, addLink, updateLinkType, setLinkStatus, setSolved, solved,
-        linkingFromId, radialMenu, setRadialMenu,
+        links, updateLinkType, setSolved, solved,
+        linkingFromId, radialMenu, setRadialMenu, deductionState, validateAndMarkLinks,
         currentView, setView
     } = useGameStore();
 
-    const { pointer, camera, raycaster } = useThree();
-    
+    const corkTexture = useTexture('/corkboard.jpg');
+    const { corkRepeatX, corkRepeatY, corkRotation, corkRoughness } = useControls('Board Texture', {
+        corkRepeatX: { value: 2, min: 0.5, max: 10, step: 0.1 },
+        corkRepeatY: { value: 2, min: 0.5, max: 10, step: 0.1 },
+        corkRotation: { value: 0, min: -Math.PI, max: Math.PI, step: 0.01 },
+        corkRoughness: { value: 0.9, min: 0.1, max: 1, step: 0.05 },
+    });
+
+    const removeLink = useGameStore(state => state.removeLink);
+
+    useEffect(() => {
+        corkTexture.colorSpace = THREE.SRGBColorSpace;
+        corkTexture.wrapS = THREE.RepeatWrapping;
+        corkTexture.wrapT = THREE.RepeatWrapping;
+        corkTexture.center.set(0.5, 0.5);
+        corkTexture.repeat.set(corkRepeatX, corkRepeatY);
+        corkTexture.rotation = corkRotation;
+        corkTexture.needsUpdate = true;
+    }, [corkTexture, corkRepeatX, corkRepeatY, corkRotation]);
+
     // PERFORMANCE: Memoize materials
-    const corkMaterial = useMemo(() => new THREE.MeshStandardMaterial({ 
-        color: "#d2b48c", 
-        roughness: 0.9, 
-        bumpScale: 0.1 
-    }), []);
+    const corkMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+        map: corkTexture,
+        roughness: corkRoughness,
+        bumpScale: 0.1
+    }), [corkTexture, corkRoughness]);
 
     const handleRadialSelect = (type: LinkType) => {
         if (radialMenu) {
@@ -46,45 +65,119 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
     const handleBoardClick = (e: any) => {
         e.stopPropagation();
 
+        if (useGameStore.getState().isPointerOnComputer) {
+            console.log('[ViewChange][Board] ignored (pointer on computer)', { from: currentView });
+            return;
+        }
+
         // If an item is focused, unfocus it
         if (focusedItemId && setFocusedItemId) {
             setFocusedItemId(null);
             return;
         }
 
-        if (currentView === 'BOARD' && !linkingFromId && !radialMenu) {
-            setView('DESK');
-        } else if (currentView === 'DESK') {
+        // Switch to BOARD view when clicking the board in DESK view
+        if (currentView === 'DESK') {
+            console.log('[ViewChange][Board] click', { from: currentView, to: 'BOARD' });
             setView('BOARD');
+        } else if (currentView === 'BOARD' && !linkingFromId && !radialMenu) {
+            // Exit board view when clicking background in BOARD view
+            console.log('[ViewChange][Board] click', { from: currentView, to: 'DESK' });
+            setView('DESK');
         }
     };
 
     const handleVerify = () => {
-        let allValid = true;
-        let incorrectCount = 0;
+        if (!deductionState) {
+            console.warn('No deduction state available');
+            setSolved(false);
+            return;
+        }
 
-        links.forEach(link => {
-            const validRule = SOLUTION_PATH.find(rule =>
-                (rule.source === link.fromId && rule.target === link.toId) &&
-                rule.type === link.type
-            );
+        const evidenceById = new Map(evidence.map(item => [item.id, item]));
 
-            if (validRule) {
-                setLinkStatus(link.id, 'VALID');
-            } else {
-                setLinkStatus(link.id, 'INVALID');
-                allValid = false;
-                incorrectCount++;
-            }
-        });
+        // Validate all links against the deduction rules
+        validateAndMarkLinks();
 
-        const requiredCount = SOLUTION_PATH.length;
-        const validCount = links.filter(l => l.status === 'VALID').length;
+        // Check if case is solved
+        const state = useGameStore.getState();
+        const solveResult = isCaseSolved(state.links, deductionState);
 
-        if (allValid && validCount >= requiredCount && incorrectCount === 0) {
+        // Track all connections in database
+        const sessionId = useGameStore.getState().sessionId;
+        if (sessionId) {
+            state.links.forEach(async (link) => {
+                const fromItem = evidenceById.get(link.fromId);
+                const toItem = evidenceById.get(link.toId);
+                const fromLabel = fromItem?.label || link.fromId;
+                const toLabel = toItem?.label || link.toId;
+
+                // Check if this is a critical connection
+                const isCritical = deductionState.criticalRuleIds.some(ruleId => {
+                    const rule = deductionState.rules.find(r => r.id === ruleId);
+                    return rule &&
+                        ((rule.source === link.fromId && rule.target === link.toId) ||
+                            (rule.source === link.toId && rule.target === link.fromId));
+                });
+
+                await trackConnection(sessionId, link, fromLabel, toLabel, isCritical);
+            });
+        }
+
+        console.log('🔗 Connections Made:');
+        if (state.links.length === 0) {
+            console.log('  (none)');
+        } else {
+            state.links.forEach((link, index) => {
+                const fromItem = evidenceById.get(link.fromId);
+                const toItem = evidenceById.get(link.toId);
+                const fromLabel = fromItem?.label || link.fromId;
+                const toLabel = toItem?.label || link.toId;
+                const status = link.status || 'UNCHECKED';
+                console.log(`  ${index + 1}. ${fromLabel} --${link.type}--> ${toLabel} [${status}]`);
+            });
+        }
+
+        // Count valid connections
+        const validCount = state.links.filter(l => l.status === 'VALID').length;
+        if (validCount > 0) {
+            console.log(`✅ ${validCount} valid connection(s)`);
+            // Play success sound
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.frequency.value = 800;
+            gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            osc.start(audioContext.currentTime);
+            osc.stop(audioContext.currentTime + 0.2);
+        }
+
+        if (solveResult.solved) {
             setSolved(true);
+            console.log('🎉 Case Solved!');
+            // Play victory sound - three ascending tones
+            const playVictorySound = () => {
+                const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const frequencies = [523, 659, 784]; // C5, E5, G5
+                frequencies.forEach((freq, i) => {
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.15, audioContext.currentTime + i * 0.15);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.15 + 0.3);
+                    osc.start(audioContext.currentTime + i * 0.15);
+                    osc.stop(audioContext.currentTime + i * 0.15 + 0.3);
+                });
+            };
+            playVictorySound();
         } else {
             setSolved(false);
+            console.log('❌ Case not yet solved. Missing:', solveResult.missing);
         }
     };
 
@@ -102,8 +195,8 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
             {/* Board Physical Body */}
             <RigidBody type="fixed" colliders="cuboid">
                 {/* Corkboard Surface */}
-                <mesh receiveShadow onClick={handleBoardClick} frustumCulled>
-                    <boxGeometry args={[10, 6, 0.2]} />
+                <mesh receiveShadow onClick={currentView === 'BOARD' || currentView === 'DESK' ? handleBoardClick : undefined} frustumCulled>
+                    <boxGeometry args={[10, 6, .01]} />
                     <primitive object={corkMaterial} attach="material" />
                 </mesh>
 
@@ -136,6 +229,10 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
                         menuData: radialMenu
                     }}
                     parentRef={groupRef}
+                    onConnectionClick={(connId) => {
+                        console.log('🗑️ Deleting connection:', connId);
+                        removeLink(connId);
+                    }}
                 />
             )}
 
@@ -144,7 +241,11 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
                 <RadialMenu
                     position={[menuLocalPos.x, menuLocalPos.y, menuLocalPos.z]}
                     onSelect={handleRadialSelect}
-                    onClose={() => setRadialMenu(null)}
+                    onClose={() => {
+                        console.log('❌ Canceling connection creation:', radialMenu.connectionId);
+                        removeLink(radialMenu.connectionId);
+                        setRadialMenu(null);
+                    }}
                 />
             )}
         </group>
