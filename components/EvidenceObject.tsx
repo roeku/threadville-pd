@@ -502,12 +502,12 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
 
   // PERFORMANCE: Memoize document content material to avoid recreation on page changes
   const documentContentMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    map: generatedMaps[currentPage],
+    map: generatedMaps[0], // Start with first page, will be updated by useEffect
     transparent: true,
     roughness: 0.8,
     metalness: 0,
     side: THREE.FrontSide,
-  }), [generatedMaps, currentPage]);
+  }), [generatedMaps]);
 
   // Update material map when page changes
   useEffect(() => {
@@ -518,8 +518,8 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
   }, [documentContentMaterial, generatedMaps, currentPage]);
 
   useEffect(() => {
-    // Capture the current textures to dispose in cleanup
-    const texturesToDispose = generatedMaps;
+    // Capture the current textures to dispose in cleanup - spread to new array
+    const texturesToDispose = [...generatedMaps];
 
     if (isNewSystem) {
       // Use fields if available, otherwise fallback to top-level metadata
