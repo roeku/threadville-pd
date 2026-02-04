@@ -10,6 +10,10 @@ interface SkyboxSphereProps {
 export const SkyboxSphere: React.FC<SkyboxSphereProps> = ({ imagePath, scale = 500, ...props }) => {
     const texture = useTexture(imagePath);
 
+    // PERFORMANCE: Memoize geometry to avoid recreation
+    // PERFORMANCE: Reduced segments from (64, 32) to (32, 16) for better performance
+    const sphereGeometry = useMemo(() => new THREE.SphereGeometry(1, 32, 16), []);
+
     // PERFORMANCE: Memoize material to avoid recreation
     const material = useMemo(() => {
         // Set up texture for best quality
@@ -27,7 +31,7 @@ export const SkyboxSphere: React.FC<SkyboxSphereProps> = ({ imagePath, scale = 5
 
     return (
         <mesh scale={scale} frustumCulled={false} {...props}>
-            <sphereGeometry args={[1, 64, 32]} />
+            <primitive object={sphereGeometry} attach="geometry" />
             <primitive object={material} attach="material" />
         </mesh>
     );

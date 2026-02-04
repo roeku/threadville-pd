@@ -21,6 +21,10 @@ const DeductionPin = React.memo(({ onClick, visible }: { onClick: (e: any) => vo
     side: THREE.DoubleSide,
   }), []);
 
+  // PERFORMANCE: Memoize geometries to avoid recreation on every render
+  const pinGeometry = useMemo(() => new THREE.SphereGeometry(0.015), []);
+  const interactionGeometry = useMemo(() => new THREE.SphereGeometry(0.05), []);
+
   // Update material properties on hover instead of switching materials
   useEffect(() => {
     if (material) {
@@ -41,12 +45,12 @@ const DeductionPin = React.memo(({ onClick, visible }: { onClick: (e: any) => vo
         scale={hover ? 1.5 : 1}
         frustumCulled
       >
-        <sphereGeometry args={[0.015]} />
+        <primitive object={pinGeometry} attach="geometry" />
         <primitive object={material} attach="material" />
       </mesh>
       {/* Interaction Zone - larger */}
       <mesh position={[0, 0, 0]} visible={false} onClick={(e) => { e.stopPropagation(); onClick(e); }} onPointerDown={(e) => { e.stopPropagation(); }}>
-        <sphereGeometry args={[0.05]} />
+        <primitive object={interactionGeometry} attach="geometry" />
       </mesh>
     </group>
   );
@@ -487,6 +491,32 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
     }
   }, [hovered, borderWireframeMaterial]);
 
+  // PERFORMANCE: Memoize geometries for paper evidence to avoid recreation
+  const paperBoxGeometry = useMemo(() => new THREE.BoxGeometry(paperWidth, 0.002, paperHeight), [paperWidth, paperHeight]);
+  const paperPlaneGeometry = useMemo(() => new THREE.PlaneGeometry(paperWidth, paperHeight), [paperWidth, paperHeight]);
+  const paperOutlineGeometry = useMemo(() => new THREE.BoxGeometry(paperWidth + 0.01, 0.001, paperHeight + 0.01), [paperWidth, paperHeight]);
+
+  // PERFORMANCE: Memoize geometries for photo evidence
+  const photoBoxGeometry = useMemo(() => new THREE.BoxGeometry(0.15, 0.002, 0.18), []);
+  const photoOutlineGeometry = useMemo(() => new THREE.BoxGeometry(0.16, 0.001, 0.19), []);
+
+  // PERFORMANCE: Memoize document content material to avoid recreation on page changes
+  const documentContentMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    map: generatedMaps[currentPage],
+    transparent: true,
+    roughness: 0.8,
+    metalness: 0,
+    side: THREE.FrontSide,
+  }), [generatedMaps, currentPage]);
+
+  // Update material map when page changes
+  useEffect(() => {
+    if (documentContentMaterial && generatedMaps.length > 0) {
+      documentContentMaterial.map = generatedMaps[currentPage];
+      documentContentMaterial.needsUpdate = true;
+    }
+  }, [documentContentMaterial, generatedMaps, currentPage]);
+
   useEffect(() => {
     if (isNewSystem) {
       // Use fields if available, otherwise fallback to top-level metadata
@@ -611,7 +641,7 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
           <group>
             {/* Base Paper Block (Physical Body) */}
             <mesh castShadow receiveShadow frustumCulled>
-              <boxGeometry args={[paperWidth, 0.002, paperHeight]} />
+              <primitive object={paperBoxGeometry} attach="geometry" />
               <primitive object={paperBaseMaterial} attach="material" />
             </mesh>
 
@@ -623,27 +653,21 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
                 receiveShadow
                 frustumCulled
               >
-                <planeGeometry args={[paperWidth, paperHeight]} />
-                <meshStandardMaterial
-                  map={generatedMaps[currentPage]}
-                  transparent={true}
-                  roughness={0.8}
-                  metalness={0}
-                  side={THREE.FrontSide}
-                />
+                <primitive object={paperPlaneGeometry} attach="geometry" />
+                <primitive object={documentContentMaterial} attach="material" />
               </mesh>
             )}
 
             {/* Outline on hover */}
             {hovered && (
               <mesh position={[0, 0, 0]} frustumCulled>
-                <boxGeometry args={[paperWidth + 0.01, 0.001, paperHeight + 0.01]} />
+                <primitive object={paperOutlineGeometry} attach="geometry" />
                 <primitive object={borderWireframeMaterial} attach="material" />
               </mesh>
             )}
 
             <mesh position={[0, 0, 0]} frustumCulled>
-              <boxGeometry args={[paperWidth + 0.01, 0.001, paperHeight + 0.01]} />
+              <primitive object={paperOutlineGeometry} attach="geometry" />
               <primitive object={borderWireframeMaterial} attach="material" />
             </mesh>
 
@@ -668,13 +692,13 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
           <group>
             {/* Photo Border */}
             <mesh castShadow receiveShadow frustumCulled>
-              <boxGeometry args={[0.15, 0.002, 0.18]} />
+              <primitive object={photoBoxGeometry} attach="geometry" />
               <primitive object={photoBaseMaterial} attach="material" />
             </mesh>
             {/* Outline */}
             {hovered && (
               <mesh position={[0, 0, 0]} frustumCulled>
-                <boxGeometry args={[0.16, 0.001, 0.19]} />
+                <primitive object={photoOutlineGeometry} attach="geometry" />
                 <primitive object={borderWireframeMaterial} attach="material" />
               </mesh>
             )}

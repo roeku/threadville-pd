@@ -14,7 +14,8 @@ export const CityCyclorama: React.FC<CityCycloramaProps> = ({ imagePath, ...prop
         // radius: 25 units away (far enough to create parallax)
         // height: 20 units (tall enough to fill vertical view)
         // thetaLength: Math.PI / 1.5 (We only create a 120-degree arc, not a full circle)
-        return [25, 25, 20, 64, 1, true, -Math.PI / 3, Math.PI / 1.5] as const;
+        // PERFORMANCE: Reduced radial segments from 64 to 32 for better performance
+        return [25, 25, 20, 32, 1, true, -Math.PI / 3, Math.PI / 1.5] as const;
     }, []);
 
     const material = useMemo(() => {

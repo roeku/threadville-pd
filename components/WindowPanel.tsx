@@ -169,33 +169,38 @@ const WindowPanelComponent = ({ position, rotation, width = 3, height = 4 }: { p
         new THREE.MeshStandardMaterial({ color: "#1a1a1a", roughness: 0.8 }),
         []);
 
+    // PERFORMANCE: Memoize all geometries to avoid recreation on every render
+    const planeGeometry = useMemo(() => new THREE.PlaneGeometry(width, height), [width, height]);
+    const topBottomFrameGeometry = useMemo(() => new THREE.BoxGeometry(width + 0.1, 0.1, 0.1), [width]);
+    const leftRightFrameGeometry = useMemo(() => new THREE.BoxGeometry(0.1, height, 0.1), [height]);
+
     return (
         <group position={position} rotation={rotation}>
             {/* Glass Pane with Frosted Effect */}
             <mesh ref={meshRef} frustumCulled>
-                <planeGeometry args={[width, height]} />
+                <primitive object={planeGeometry} attach="geometry" />
                 <primitive object={shaderMaterial} attach="material" />
             </mesh>
 
             {/* Frame / Mullions */}
             {/* Top Frame */}
             <mesh position={[0, height / 2, 0]} frustumCulled>
-                <boxGeometry args={[width + 0.1, 0.1, 0.1]} />
+                <primitive object={topBottomFrameGeometry} attach="geometry" />
                 <primitive object={frameMaterial} attach="material" />
             </mesh>
             {/* Bottom Frame */}
             <mesh position={[0, -height / 2, 0]} frustumCulled>
-                <boxGeometry args={[width + 0.1, 0.1, 0.1]} />
+                <primitive object={topBottomFrameGeometry} attach="geometry" />
                 <primitive object={frameMaterial} attach="material" />
             </mesh>
             {/* Left Frame */}
             <mesh position={[-width / 2, 0, 0]} frustumCulled>
-                <boxGeometry args={[0.1, height, 0.1]} />
+                <primitive object={leftRightFrameGeometry} attach="geometry" />
                 <primitive object={frameMaterial} attach="material" />
             </mesh>
             {/* Right Frame */}
             <mesh position={[width / 2, 0, 0]} frustumCulled>
-                <boxGeometry args={[0.1, height, 0.1]} />
+                <primitive object={leftRightFrameGeometry} attach="geometry" />
                 <primitive object={frameMaterial} attach="material" />
             </mesh>
 

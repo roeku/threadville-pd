@@ -54,6 +54,9 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
         bumpScale: 0.1
     }), [corkTexture, corkRoughness]);
 
+    // PERFORMANCE: Memoize board geometry to avoid recreation
+    const boardGeometry = useMemo(() => new THREE.BoxGeometry(10, 6, 0.01), []);
+
     const handleRadialSelect = (type: LinkType) => {
         if (radialMenu) {
             updateLinkType(radialMenu.connectionId, type);
@@ -196,7 +199,7 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
             <RigidBody type="fixed" colliders="cuboid">
                 {/* Corkboard Surface */}
                 <mesh receiveShadow onClick={currentView === 'BOARD' || currentView === 'DESK' ? handleBoardClick : undefined} frustumCulled>
-                    <boxGeometry args={[10, 6, .01]} />
+                    <primitive object={boardGeometry} attach="geometry" />
                     <primitive object={corkMaterial} attach="material" />
                 </mesh>
 
