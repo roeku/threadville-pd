@@ -97,6 +97,13 @@ export const CaseCompletionFolder = forwardRef<RapierRigidBody, CaseCompletionFo
                     });
                 }
             });
+
+            // PERFORMANCE: Cleanup - dispose texture when component unmounts or data changes
+            return () => {
+                if (texture) {
+                    texture.dispose();
+                }
+            };
         }, [caseTitle, solved, sessionStartTime, report, sessionId, caseFile]);
 
         const material = useMemo(() => new THREE.MeshStandardMaterial({

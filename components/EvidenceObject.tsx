@@ -559,6 +559,13 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
     } else {
       setGeneratedMaps([]);
     }
+
+    // PERFORMANCE: Cleanup - dispose old textures when component unmounts or metadata changes
+    return () => {
+      generatedMaps.forEach(texture => {
+        texture.dispose();
+      });
+    };
   }, [isNewSystem, item.metadata, item.id]);
 
   // Physics cleanup for focus mode
