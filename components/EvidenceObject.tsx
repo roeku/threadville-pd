@@ -13,43 +13,122 @@ import { getTemplateForEvidence } from '../services/templateManager';
 const DeductionPin = React.memo(({ onClick, visible }: { onClick: (e: any) => void, visible: boolean }) => {
   const [hover, setHover] = useState(false);
 
-  // PERFORMANCE: Single material that we update instead of switching
-  const material = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#aa0000",
-    emissive: "#ff0000",
-    emissiveIntensity: 0,
-    side: THREE.DoubleSide,
+  // PERFORMANCE: Memoize materials for pin components
+  const metalMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: "#c0c0c0",
+    metalness: 0.9,
+    roughness: 0.2,
   }), []);
 
-  // PERFORMANCE: Memoize geometries to avoid recreation on every render
-  const pinGeometry = useMemo(() => new THREE.SphereGeometry(0.015), []);
-  const interactionGeometry = useMemo(() => new THREE.SphereGeometry(0.05), []);
+  const plasticMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: hover ? "#ff6666" : "#dd0000",
+    metalness: 0.1,
+    roughness: 0.8,
+    emissive: hover ? "#ff3333" : "#000000",
+    emissiveIntensity: hover ? 0.5 : 0,
+  }), []);
 
-  // Update material properties on hover instead of switching materials
+  // Update plastic material on hover
   useEffect(() => {
-    if (material) {
-      material.color.setHex(hover ? 0xff4444 : 0xaa0000);
-      material.emissiveIntensity = hover ? 0.5 : 0;
-      material.needsUpdate = true;
+    if (plasticMaterial) {
+      plasticMaterial.color.setHex(hover ? 0xff6666 : 0xdd0000);
+      plasticMaterial.emissive.setHex(hover ? 0xff3333 : 0x000000);
+      plasticMaterial.emissiveIntensity = hover ? 0.5 : 0;
+      plasticMaterial.needsUpdate = true;
     }
-  }, [hover, material]);
+  }, [hover, plasticMaterial]);
+
+  // PERFORMANCE: Memoize geometries
+  const needleGeometry = useMemo(() => new THREE.CylinderGeometry(0.003, 0.0008, 0.08, 16), []);
+  const baseFlangeGeometry = useMemo(() => new THREE.CylinderGeometry(0.015, 0.025, 0.025, 32), []);
+  const neckGeometry = useMemo(() => new THREE.CylinderGeometry(0.035, 0.012, 0.045, 32), []);
+  const headGeometry = useMemo(() => new THREE.CylinderGeometry(0.035, 0.035, 0.008, 32), []);
+  const interactionGeometry = useMemo(() => new THREE.SphereGeometry(0.06), []);
+
+  const handlePointerOver = (e: any) => {
+    e.stopPropagation();
+    setHover(true);
+    document.body.style.cursor = 'crosshair';
+  };
+
+  const handlePointerOut = (e: any) => {
+    e.stopPropagation();
+    setHover(false);
+    document.body.style.cursor = 'auto';
+  };
+
+  const handleClick = (e: any) => {
+    e.stopPropagation();
+    onClick(e);
+  };
+
+  const handlePointerDown = (e: any) => {
+    e.stopPropagation();
+  };
 
   return (
     <group visible={visible}>
+      {/* Needle (Metal) - Tip pointing down */}
       <mesh
-        position={[0, 0.01, 0]}
-        onClick={(e) => { e.stopPropagation(); onClick(e); }}
-        onPointerDown={(e) => { e.stopPropagation(); }} /* Stop Drag Propagation */
-        onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = 'crosshair'; }}
-        onPointerOut={(e) => { e.stopPropagation(); setHover(false); document.body.style.cursor = 'auto'; }}
-        scale={hover ? 1.5 : 1}
-        frustumCulled
+        position={[0, -0.04, 0]}
+        castShadow
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+        onPointerDown={handlePointerDown}
+        onClick={handleClick}
       >
-        <primitive object={pinGeometry} attach="geometry" />
-        <primitive object={material} attach="material" />
+        <primitive object={needleGeometry} attach="geometry" />
+        <primitive object={metalMaterial} attach="material" />
+      </mesh>
+
+      {/* Base Flange (bottom of plastic body) */}
+      <mesh
+        position={[0, 0, 0]}
+        castShadow
+        receiveShadow
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+        onPointerDown={handlePointerDown}
+        onClick={handleClick}
+      >
+        <primitive object={baseFlangeGeometry} attach="geometry" />
+        <primitive object={plasticMaterial} attach="material" />
+      </mesh>
+
+      {/* Neck/Upper Body (Flares out) */}
+      <mesh
+        position={[0, 0.035, 0]}
+        castShadow
+        receiveShadow
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+        onPointerDown={handlePointerDown}
+        onClick={handleClick}
+      >
+        <primitive object={neckGeometry} attach="geometry" />
+        <primitive object={plasticMaterial} attach="material" />
+      </mesh>
+
+      {/* Flat Head Cap */}
+      <mesh
+        position={[0, 0.058, 0]}
+        castShadow
+        receiveShadow
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+        onPointerDown={handlePointerDown}
+        onClick={handleClick}
+      >
+        <primitive object={headGeometry} attach="geometry" />
+        <primitive object={plasticMaterial} attach="material" />
       </mesh>
       {/* Interaction Zone - larger */}
-      <mesh position={[0, 0, 0]} visible={false} onClick={(e) => { e.stopPropagation(); onClick(e); }} onPointerDown={(e) => { e.stopPropagation(); }}>
+      <mesh
+        position={[0, 0.02, 0]}
+        visible={false}
+        onClick={handleClick}
+        onPointerDown={handlePointerDown}
+      >
         <primitive object={interactionGeometry} attach="geometry" />
       </mesh>
     </group>
@@ -62,12 +141,12 @@ interface EvidenceObjectProps {
   onFocus: (id: string) => void;
   onUnfocus: () => void;
   isPinned: boolean;
-  onPin: (pinned: boolean) => void;
+  onPin: (id: string, pinned: boolean) => void;
   onPinClick?: (id: string, pos: THREE.Vector3) => void; // New prop
   sceneLiftY?: number;
 }
 
-const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<RapierRigidBody>) => {
+const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: React.Ref<RapierRigidBody>) => {
   const { item, isFocused, onFocus, onUnfocus, isPinned, onPin, onPinClick, sceneLiftY = 0 } = props;
   const localRef = useRef<RapierRigidBody>(null);
   useImperativeHandle(ref, () => localRef.current!);
@@ -87,8 +166,9 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
     setIsDraggingItem(isDragging);
   }, [isDragging, setIsDraggingItem]);
 
-  // Use a plane for raycasting when dragging
-  const dragPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
+  // Use planes for raycasting when dragging
+  const boardPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, -1), 0.38), []);
+  const deskPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
   const dragPoint = useRef(new THREE.Vector3());
 
   useCursor(hovered && !isDragging, 'pointer', 'auto');
@@ -110,6 +190,9 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
 
     // PERFORMANCE: Early exit if not in any active state
     if (!isFocused && !isDragging) return;
+
+    // PERFORMANCE: Skip if we're in a view that doesn't allow interaction
+    if (currentView === 'COMPUTER') return;
 
     if (isFocused) {
       // Focus Mode: Smoothly move to front of camera
@@ -155,9 +238,7 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
       // Define Wall/Board Plane (Z-facing) and Desk Plane (Y-facing)
       // Board is at Z ~ 0.38, evidence placed at Z ~ 0.35 (in front). Normal points to -Z (towards camera).
       // Plane equation: -z + 0.35 = 0  => z = 0.35
-      const boardPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0.38);
-
-      const deskPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -currentPos.y);
+      deskPlane.constant = -currentPos.y;
 
       // Board View: Always use Wall Plane
       if (currentView === 'BOARD' || isPinned) {
@@ -240,7 +321,14 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
     }
   }, [isFocused, item.label, item.id]);
 
-  const onPointerDown = (e: any) => {
+  const handlePinClick = React.useCallback((e: any) => {
+    if (!isPinned) return;
+    const worldPos = new THREE.Vector3();
+    e.object.getWorldPosition(worldPos);
+    onPinClick?.(item.id, worldPos);
+  }, [isPinned, onPinClick, item.id]);
+
+  const onPointerDown = React.useCallback((e: any) => {
     e.stopPropagation();
 
     // If focused, start manual rotation
@@ -260,9 +348,9 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
       rigidBody.current.setBodyType(2, true); // KinematicPosition
       rigidBody.current.wakeUp();
     }
-  };
+  }, [isFocused]);
 
-  const onPointerMove = (e: any) => {
+  const onPointerMove = React.useCallback((e: any) => {
     // Handle Rotation/Pan in Focus Mode
     if (isFocused && isInteracting.current) {
       e.stopPropagation();
@@ -292,9 +380,9 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
 
       lastPointerPos.current = { x: e.clientX, y: e.clientY };
     }
-  };
+  }, [isFocused]);
 
-  const onPointerUp = (e: any) => {
+  const onPointerUp = React.useCallback((e: any) => {
     e.stopPropagation();
 
     if (isFocused) {
@@ -332,7 +420,7 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
 
       if (isOnBoard) {
         if (!isPinned) {
-          onPin(true);
+          onPin(item.id, true);
           // Snap to board surface (Board front face ~ 0.5)
           rigidBody.current.setTranslation({ x: pos.x, y: pos.y, z: 0.38 }, true);
           // Fixed rotation facing camera (Top of paper becomes Top of board)
@@ -343,7 +431,7 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
         }
       } else {
         if (isPinned) {
-          onPin(false);
+          onPin(item.id, false);
           rigidBody.current.setBodyType(0, true);
           rigidBody.current.wakeUp();
         } else {
@@ -363,7 +451,7 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
       dragStartPos.current = null;
     }
     (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
-  };
+  }, [isFocused, isPinned, onPin, onFocus, item.id]);
 
   // Revert physics type when unfocused OR unpinned state changes (from outside)
   useEffect(() => {
@@ -681,17 +769,12 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
               <primitive object={borderWireframeMaterial} attach="material" />
             </mesh>
 
-            <group position={[0, 0, -paperHeight / 2 + 0.02]}>
+            {isPinned && <group position={[0, 0, -paperHeight / 2 + 0.02]} scale={.3}>
               <DeductionPin
                 visible={isPinned}
-                onClick={(e: any) => {
-                  if (!isPinned) return;
-                  const worldPos = new THREE.Vector3();
-                  e.object.getWorldPosition(worldPos);
-                  onPinClick?.(item.id, worldPos);
-                }}
+                onClick={handlePinClick}
               />
-            </group>
+            </group>}
 
 
             <CuboidCollider args={[paperWidth / 2, 0.001, paperHeight / 2]} />
@@ -731,17 +814,12 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
               {item.label}
             </Text>
 
-            <group position={[0, 0, -0.07]}>
+            {isPinned && <group position={[0, .012, -0.07]} scale={.3}>
               <DeductionPin
                 visible={isPinned}
-                onClick={(e: any) => {
-                  if (!isPinned) return;
-                  const worldPos = new THREE.Vector3();
-                  e.object.getWorldPosition(worldPos);
-                  onPinClick?.(item.id, worldPos);
-                }}
+                onClick={handlePinClick}
               />
-            </group>
+            </group>}
 
             <CuboidCollider args={[0.075, 0.001, 0.09]} />
           </group>
@@ -749,8 +827,8 @@ const EvidenceObject = forwardRef((props: EvidenceObjectProps, ref: React.Ref<Ra
 
 
       </group>
-    </RigidBody>
+    </RigidBody >
   );
-});
+}));
 
 export default EvidenceObject;

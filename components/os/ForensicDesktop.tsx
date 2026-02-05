@@ -73,6 +73,7 @@ export const ForensicDesktop: React.FC<ForensicDesktopProps> = ({ currentCase, o
             onPointerLeave={() => setIsPointerOnComputer(false)}
             onPointerDown={() => setIsPointerOnComputer(true)}
         >
+
             <OSProvider currentCase={currentCase} onPrint={onPrint} onLogOut={onLogOut}>
                 <OSIntegration startApp={startApp} />
                 <div className="absolute inset-0 bg-slate-900 overflow-hidden flex flex-col">

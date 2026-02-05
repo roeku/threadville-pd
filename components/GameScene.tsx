@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { useGameStore } from '../stores/useGameStore';
 import EvidenceObject from './EvidenceObject';
 import InvestigationBoard from './InvestigationBoard';
-import { OfficeModel } from './Office';
+import { OfficeModelMemo as OfficeModel } from './Office';
 import { TextureLoadingOverlay } from './TextureLoadingOverlay';
 import { WindowPanel } from './WindowPanel';
 import { CityCyclorama } from './CityCyclorama';
@@ -23,11 +23,11 @@ const debugBoxMaterialsCache = new Map<string, THREE.MeshBasicMaterial>();
 const getDebugBoxMaterial = (color: string) => {
   let material = debugBoxMaterialsCache.get(color);
   if (!material) {
-    material = new THREE.MeshBasicMaterial({ 
-      color, 
-      wireframe: true, 
-      transparent: true, 
-      opacity: 0.5 
+    material = new THREE.MeshBasicMaterial({
+      color,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.5
     });
     debugBoxMaterialsCache.set(color, material);
   }
@@ -41,7 +41,7 @@ const DebugBox = React.memo(({ position, args, color }: { position: [number, num
     geometry = new THREE.BoxGeometry(...args);
     debugBoxGeometries.set(key, geometry);
   }
-  
+
   const material = useMemo(() => getDebugBoxMaterial(color), [color]);
 
   return (
@@ -153,9 +153,19 @@ const CaseFolder = ({ title, briefing, caseId }: { title: string, briefing: stri
   )
 };
 
-const Desk = ({ currentCase }: { currentCase: any }) => {
+const Desk = ({ currentCase, showCompletionFolder }: { currentCase: any, showCompletionFolder?: boolean }) => {
   const addToPrintQueue = useGameStore(state => state.addToPrintQueue);
   const setView = useGameStore(state => state.setView);
+
+  const handlePrint = React.useCallback((content: string, title?: string, metadata?: any, reportId?: string) => {
+    addToPrintQueue({ content, title, metadata, reportId });
+  }, [addToPrintQueue]);
+
+  const handleLogOut = React.useCallback(() => {
+    // Immediately transition to desk view - stutter was caused by setTimeout delay
+    console.log('[ViewChange][Desk] onLogOut', { from: useGameStore.getState().currentView, to: 'DESK' });
+    setView('DESK');
+  }, [setView]);
 
   return (
     <group>
@@ -163,12 +173,9 @@ const Desk = ({ currentCase }: { currentCase: any }) => {
       <OfficeModel
         scale={1}
         currentCase={currentCase}
-        onPrint={(content: string, title?: string, metadata?: any, reportId?: string) => addToPrintQueue({ content, title, metadata, reportId })}
-        onLogOut={() => {
-          // Immediately transition to desk view - stutter was caused by setTimeout delay
-          console.log('[ViewChange][Desk] onLogOut', { from: useGameStore.getState().currentView, to: 'DESK' });
-          setView('DESK');
-        }}
+        onPrint={handlePrint}
+        onLogOut={handleLogOut}
+        showCompletionFolder={showCompletionFolder}
       />
     </group>
   )
@@ -393,7 +400,7 @@ const SceneLogic = ({
     const mouseY = pointerRef.current.y * maxY;
 
     // Calculate the desired destination
-    const desiredTarget = new THREE.Vector3(
+    const desiredTarget = tmpWorldA.current.set(
       tmpDeskCenterWorld.current.x + mouseX,
       tmpDeskCenterWorld.current.y + mouseY,
       tmpDeskCenterWorld.current.z
@@ -573,12 +580,15 @@ const GameScene: React.FC<GameSceneProps> = ({
   const itemRefs = React.useRef<Record<string, RapierRigidBody | null>>({});
   const deskGroupRef = React.useRef<THREE.Group>(null);
 
+  const currentView = useGameStore((state) => state.currentView);
   const addLink = useGameStore(state => state.addLink);
   const linkingFromId = useGameStore(state => state.linkingFromId);
   const setLinkingFromId = useGameStore(state => state.setLinkingFromId);
   const setRadialMenu = useGameStore(state => state.setRadialMenu);
 
-  const handlePinClick = (id: string, worldPos: THREE.Vector3) => {
+  const handleUnfocus = React.useCallback(() => setFocusedItemId(null), [setFocusedItemId]);
+
+  const handlePinClick = React.useCallback((id: string, worldPos: THREE.Vector3) => {
     if (linkingFromId === id) {
       setLinkingFromId(null);
     } else if (linkingFromId) {
@@ -590,7 +600,7 @@ const GameScene: React.FC<GameSceneProps> = ({
     } else {
       setLinkingFromId(id);
     }
-  };
+  }, [addLink, linkingFromId, setLinkingFromId, setRadialMenu]);
 
   // --- HARDCODED SCENE PARAMS ---
   // The imported GLB is oriented such that the desk reads as a side view from our camera.
@@ -653,11 +663,10 @@ const GameScene: React.FC<GameSceneProps> = ({
 
   return (
     <div className="w-full h-screen bg-black">
-      <Canvas shadows onPointerMissed={() => {
+      <Canvas dpr={[1, 1.5]} shadows onPointerMissed={() => {
         // Don't change view if in COMPUTER mode (user is interacting with OS)
         const currentView = useGameStore.getState().currentView;
         if (currentView === 'COMPUTER') return;
-
         setFocusedItemId(null);
         if (currentView !== 'DESK') {
           console.log('[ViewChange][Canvas] onPointerMissed', { from: currentView, to: 'DESK' });
@@ -754,7 +763,7 @@ const GameScene: React.FC<GameSceneProps> = ({
         </Box>
 
         {/* Cyclorama curved backdrop - pre-blurred city image */}
-        <CityCyclorama imagePath="/flat-city-blurred.jpg" position={[0, 8, 14]} scale={2} />
+        <CityCyclorama imagePath="/flat-city-blurred.jpg" />
 
         {/* Wrap entire scene in a group to lift everything together */}
         <group position={[0, sceneLiftY, 0]}>
@@ -777,7 +786,7 @@ const GameScene: React.FC<GameSceneProps> = ({
             <Suspense fallback={<Html center><div className="text-amber-500 font-mono text-xs">LOADING OFFICE...</div></Html>}>
               <group ref={deskGroupRef} position={[deskPos.x, deskPos.y, deskPos.z]} rotation={[0, deskRotY, 0]}>
                 {/* <DeskLighting /> */}
-                <Desk currentCase={caseFile} />
+                <Desk currentCase={caseFile} showCompletionFolder={showCompletionFolder} />
 
 
 
@@ -792,9 +801,9 @@ const GameScene: React.FC<GameSceneProps> = ({
                       item={item}
                       isFocused={focusedItemId === item.id}
                       onFocus={setFocusedItemId}
-                      onUnfocus={() => setFocusedItemId(null)}
+                      onUnfocus={handleUnfocus}
                       isPinned={pinnedItems.has(item.id)}
-                      onPin={(pinned) => onPinItem(item.id, pinned)}
+                      onPin={onPinItem}
                       onPinClick={handlePinClick}
                       sceneLiftY={sceneLiftY}
                     />
@@ -808,12 +817,15 @@ const GameScene: React.FC<GameSceneProps> = ({
             <Suspense fallback={<Html position={[0, 5, -8]} center><div className="text-red-500 font-mono text-xs">LOADING EVIDENCE...</div></Html>}>
 
               {/* Investigation Board Zone - On the wall behind/above desk */}
-              <group position={[boardPos.x, boardPos.y, boardPos.z]} scale={[boardScale, boardScale, boardScale]}>
-                <InvestigationBoard
-                  itemRefs={itemRefs} evidence={evidence} focusedItemId={focusedItemId}
-                  setFocusedItemId={setFocusedItemId}
-                />
-              </group>
+              {/* Only render when in BOARD view to save computation */}
+              {(
+                <group position={[boardPos.x, boardPos.y, boardPos.z]} scale={[boardScale, boardScale, boardScale]}>
+                  <InvestigationBoard
+                    itemRefs={itemRefs} evidence={evidence} focusedItemId={focusedItemId}
+                    setFocusedItemId={setFocusedItemId}
+                  />
+                </group>
+              )}
 
             </Suspense>
             {showCompletionFolder && sessionId && (
@@ -827,7 +839,7 @@ const GameScene: React.FC<GameSceneProps> = ({
                 onNextCase={() => onFolderAction?.('next')}
                 onReplay={() => onFolderAction?.('replay')}
                 onMainMenu={() => onFolderAction?.('menu')}
-                position={[0, 0.3, -1.5]}
+                position={[0, 0.5, 0.15]}
               />
             )}
           </Physics>

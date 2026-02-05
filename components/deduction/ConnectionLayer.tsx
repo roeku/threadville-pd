@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { RapierRigidBody } from '@react-three/rapier';
 import { EvidenceLink, LinkType, InteractionState } from '../../types/deduction';
 import { EvidenceItem, EvidenceType } from '../../types';
+import { useGameStore } from '../../stores/useGameStore';
 
 interface Props {
     connections: EvidenceLink[];
@@ -42,7 +43,7 @@ const getPinOffset = (item?: EvidenceItem) => {
     return new THREE.Vector3(0, 0.02, -height / 2 + 0.02);
 }
 
-const SingleConnection = ({ conn, itemRefs, evidence, parentRef, onConnectionClick }: { conn: EvidenceLink, itemRefs: any, evidence: EvidenceItem[], parentRef?: any, onConnectionClick?: (id: string) => void }) => {
+const SingleConnection = ({ conn, itemRefs, evidence, parentRef, onConnectionClick, isActive }: { conn: EvidenceLink, itemRefs: any, evidence: EvidenceItem[], parentRef?: any, onConnectionClick?: (id: string) => void, isActive: boolean }) => {
     const lineRef = useRef<any>(null);
     const hitAreaRef = useRef<any>(null);
     const [hovered, setHovered] = React.useState(false);
@@ -82,6 +83,7 @@ const SingleConnection = ({ conn, itemRefs, evidence, parentRef, onConnectionCli
     }, [conn.type, conn.status]);
 
     useFrame(() => {
+        if (!isActive) return;
         if (!itemRefs.current || !lineRef.current) return;
         const startBody = itemRefs.current[conn.fromId];
         const endBody = itemRefs.current[conn.toId];
@@ -93,12 +95,19 @@ const SingleConnection = ({ conn, itemRefs, evidence, parentRef, onConnectionCli
         const r1 = startBody.rotation();
         const r2 = endBody.rotation();
 
-        // Pin Offset Logic
+        // Pin Offset Logic - reuse memoized item refs instead of refetching
         const pinLocal1 = getPinOffset(fromItem);
         const pinLocal2 = getPinOffset(toItem);
 
-        startVec.set(p1.x, p1.y, p1.z).add(pinLocal1.clone().applyQuaternion(new THREE.Quaternion(r1.x, r1.y, r1.z, r1.w)));
-        endVec.set(p2.x, p2.y, p2.z).add(pinLocal2.clone().applyQuaternion(new THREE.Quaternion(r2.x, r2.y, r2.z, r2.w)));
+        // Reuse vectors instead of creating new ones
+        startVec.set(p1.x, p1.y, p1.z);
+        endVec.set(p2.x, p2.y, p2.z);
+
+        // Apply pin offsets with rotation
+        const q1 = new THREE.Quaternion(r1.x, r1.y, r1.z, r1.w);
+        const q2 = new THREE.Quaternion(r2.x, r2.y, r2.z, r2.w);
+        startVec.add(pinLocal1.clone().applyQuaternion(q1));
+        endVec.add(pinLocal2.clone().applyQuaternion(q2));
 
         // Transform to Local Space if parentRef provided
         if (parentRef?.current) {
@@ -160,7 +169,7 @@ const SingleConnection = ({ conn, itemRefs, evidence, parentRef, onConnectionCli
     )
 }
 
-const DraggingConnection = ({ fromId, mousePos, itemRefs, evidence, parentRef }: { fromId: string, mousePos: [number, number, number], itemRefs: any, evidence: EvidenceItem[], parentRef?: any }) => {
+const DraggingConnection = ({ fromId, mousePos, itemRefs, evidence, parentRef, isActive }: { fromId: string, mousePos: [number, number, number], itemRefs: any, evidence: EvidenceItem[], parentRef?: any, isActive: boolean }) => {
     const lineRef = useRef<any>(null);
     const startVec = useMemo(() => new THREE.Vector3(), []);
     const endVec = useMemo(() => new THREE.Vector3(), []);
@@ -175,19 +184,21 @@ const DraggingConnection = ({ fromId, mousePos, itemRefs, evidence, parentRef }:
     const plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), []); // Z-plane (corkboard)
 
     useFrame(() => {
+        if (!isActive) return;
         if (!itemRefs.current || !lineRef.current) return;
         const startBody = itemRefs.current[fromId];
 
-        if (startBody) {
-            const p1 = startBody.translation();
-            const r1 = startBody.rotation();
-            const pinLocal = getPinOffset(fromItem);
-            startVec.set(p1.x, p1.y, p1.z).add(pinLocal.clone().applyQuaternion(new THREE.Quaternion(r1.x, r1.y, r1.z, r1.w)));
+        if (!startBody) return;
 
-            // Calculate Mouse Pos on Plane (if we are in Board View, we want to hit the board)
-            // But we need to raycast in World Space, find intersection, then convert to Local.
+        const p1 = startBody.translation();
+        const r1 = startBody.rotation();
+        const pinLocal = getPinOffset(fromItem);
+        
+        startVec.set(p1.x, p1.y, p1.z);
+        const q1 = new THREE.Quaternion(r1.x, r1.y, r1.z, r1.w);
+        startVec.add(pinLocal.clone().applyQuaternion(q1));
 
-            raycaster.setFromCamera(pointer, camera);
+        raycaster.setFromCamera(pointer, camera);
             // We need a plane that matches the board surface.
             // The Board is at `boardPos`.
             // If parentRef is the board group, we can use its world matrix.
@@ -197,39 +208,31 @@ const DraggingConnection = ({ fromId, mousePos, itemRefs, evidence, parentRef }:
             // To make it simpler: use the passed `mousePos` which InvestigationBoard should update?
             // No, doing it here is better.
 
-            const target = new THREE.Vector3();
-            // We want to intersect the Corkboard.
-            // The corkboard is at Local Z = 0 in parentRef. 
-            // So we can transform the ray into local space, intersect Z=0 plane.
+        if (parentRef?.current) {
+            // Transform inverse
+            const invMat = parentRef.current.matrixWorld.clone().invert();
+            const rayOrigin = raycaster.ray.origin.clone().applyMatrix4(invMat);
+            const rayDir = raycaster.ray.direction.clone().transformDirection(invMat);
+            const localRay = new THREE.Ray(rayOrigin, rayDir);
 
-            if (parentRef?.current) {
-                // Transform inverse
-                const invMat = parentRef.current.matrixWorld.clone().invert();
-                const rayOrigin = raycaster.ray.origin.clone().applyMatrix4(invMat);
-                const rayDir = raycaster.ray.direction.clone().transformDirection(invMat);
-                const localRay = new THREE.Ray(rayOrigin, rayDir);
+            const localPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -0.05); // Just above cork
+            localRay.intersectPlane(localPlane, endVec);
 
-                const localPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -0.05); // Just above cork
-                localRay.intersectPlane(localPlane, target);
-                endVec.copy(target); // Local coords directly
-
-                // Also transform startVec (which is World) to Local
-                parentRef.current.worldToLocal(startVec);
-
-            } else {
-                endVec.set(mousePos[0], mousePos[1], mousePos[2]);
-            }
-
-            // Catenary
-            const dist = startVec.distanceTo(endVec);
-            const droop = Math.min(dist * 0.2, 0.5);
-
-            midVec.lerpVectors(startVec, endVec, 0.5);
-            midVec.y -= droop;
-            midVec.z += 0.05; // Pull forward from board surface
-
-            lineRef.current.setPoints(startVec, endVec, midVec);
+            // Also transform startVec (which is World) to Local
+            parentRef.current.worldToLocal(startVec);
+        } else {
+            endVec.set(mousePos[0], mousePos[1], mousePos[2]);
         }
+
+        // Catenary
+        const dist = startVec.distanceTo(endVec);
+        const droop = Math.min(dist * 0.2, 0.5);
+
+        midVec.lerpVectors(startVec, endVec, 0.5);
+        midVec.y -= droop;
+        midVec.z += 0.05; // Pull forward from board surface
+
+        lineRef.current.setPoints(startVec, endVec, midVec);
     });
 
     return (
@@ -248,10 +251,13 @@ const DraggingConnection = ({ fromId, mousePos, itemRefs, evidence, parentRef }:
 }
 
 const ConnectionLayer: React.FC<Props> = ({ connections, itemRefs, evidence, interaction, parentRef, onConnectionClick }) => {
+    const currentView = useGameStore(state => state.currentView);
+    const isActive = currentView === 'BOARD';
+
     return (
         <group>
             {connections.map(conn => (
-                <SingleConnection key={conn.id} conn={conn} itemRefs={itemRefs} evidence={evidence} parentRef={parentRef} onConnectionClick={onConnectionClick} />
+                <SingleConnection key={conn.id} conn={conn} itemRefs={itemRefs} evidence={evidence} parentRef={parentRef} onConnectionClick={onConnectionClick} isActive={isActive} />
             ))}
 
             {interaction.linkingFromId && (
@@ -261,10 +267,11 @@ const ConnectionLayer: React.FC<Props> = ({ connections, itemRefs, evidence, int
                     itemRefs={itemRefs}
                     evidence={evidence}
                     parentRef={parentRef}
+                    isActive={isActive}
                 />
             )}
         </group>
     );
 };
 
-export default ConnectionLayer;
+export default React.memo(ConnectionLayer);

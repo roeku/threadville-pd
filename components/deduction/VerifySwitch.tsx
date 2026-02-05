@@ -48,4 +48,4 @@ const VerifySwitch: React.FC<Props> = ({ position, onVerify, solved }) => {
     );
 };
 
-export default VerifySwitch;
+export default React.memo(VerifySwitch);

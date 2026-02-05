@@ -1,6 +1,6 @@
 import React, { useRef, useMemo, useEffect } from 'react';
 import { RigidBody, RapierRigidBody } from '@react-three/rapier';
-import { RoundedBox, useTexture } from '@react-three/drei';
+import { Edges, RoundedBox, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGameStore } from '../stores/useGameStore';
 import ConnectionLayer from './deduction/ConnectionLayer';
@@ -24,8 +24,10 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
     const {
         links, updateLinkType, setSolved, solved,
         linkingFromId, radialMenu, setRadialMenu, deductionState, validateAndMarkLinks,
-        currentView, setView
+        currentView, setView, removeLink
     } = useGameStore();
+
+    const [edgesVisible, setEdgesVisible] = React.useState(false);
 
     const corkTexture = useTexture('/corkboard.jpg');
     const { corkRepeatX, corkRepeatY, corkRotation, corkRoughness } = useControls('Board Texture', {
@@ -34,8 +36,6 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
         corkRotation: { value: 0, min: -Math.PI, max: Math.PI, step: 0.01 },
         corkRoughness: { value: 0.9, min: 0.1, max: 1, step: 0.05 },
     });
-
-    const removeLink = useGameStore(state => state.removeLink);
 
     useEffect(() => {
         corkTexture.colorSpace = THREE.SRGBColorSpace;
@@ -194,18 +194,35 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
     }, [radialMenu]);
 
     return (
-        <group ref={groupRef} rotation={[0, Math.PI, 0]}>
+        <group ref={groupRef} rotation={[0, Math.PI, 0]}
+        >
             {/* Board Physical Body */}
             <RigidBody type="fixed" colliders="cuboid">
                 {/* Corkboard Surface */}
-                <mesh receiveShadow onClick={currentView === 'BOARD' || currentView === 'DESK' ? handleBoardClick : undefined} frustumCulled>
+                <mesh
+                    onPointerOver={() => {
+                        //enable edges
+                        setEdgesVisible(true);
+                    }}
+                    onPointerOut={() => {
+                        //disable edges
+                        setEdgesVisible(false);
+                    }}
+                    receiveShadow onClick={currentView === 'BOARD' || currentView === 'DESK' ? handleBoardClick : undefined} frustumCulled>
                     <primitive object={boardGeometry} attach="geometry" />
                     <primitive object={corkMaterial} attach="material" />
+                    {edgesVisible && currentView !== "BOARD" && <Edges
+                        linewidth={4}
+                        scale={1}
+                        threshold={15} // Display edges only when the angle between two faces exceeds this value (default=15 degrees)
+                        color="white"
+                    />}
                 </mesh>
 
                 {/* Frame */}
                 <mesh position={[0, 0, -0.15]} frustumCulled>
                     <RoundedBox args={[10.5, 6.5, 0.1]} material-color="#5d4037" />
+
                 </mesh>
             </RigidBody>
 
@@ -255,4 +272,4 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
     );
 };
 
-export default InvestigationBoard;
+export default React.memo(InvestigationBoard);

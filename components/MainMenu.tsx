@@ -70,10 +70,10 @@ export default function MainMenu({ onStartCase, onOpenAdmin }: MainMenuProps) {
             <div className="max-w-2xl w-full space-y-8">
                 <div className="text-center space-y-4">
                     <h1 className="text-4xl md:text-6xl font-bold tracking-tighter text-amber-500 font-serif">
-                        HOT CASE DETECTIVE
+                        THREADVILLE PD
                     </h1>
                     <p className="text-slate-400 font-mono uppercase tracking-widest text-sm">
-                        Digital Forensics Division • {new Date().getFullYear()}
+                        Detectives Dep. • {new Date().getFullYear()}
                     </p>
                 </div>
 

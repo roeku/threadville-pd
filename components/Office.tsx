@@ -48,7 +48,7 @@ type GLTFResult = GLTF & {
 
 export function OfficeModel(props: any) {
     const { nodes, materials } = useGLTF('/office.glb') as unknown as GLTFResult;
-    const { currentCase, onPrint, onLogOut } = props;
+    const { currentCase, onPrint, onLogOut, showCompletionFolder } = props;
     const currentView = useGameStore((state) => state.currentView);
     const setView = useGameStore((state) => state.setView);
     const setIsPointerOnComputer = useGameStore((state) => state.setIsPointerOnComputer);
@@ -62,16 +62,16 @@ export function OfficeModel(props: any) {
         toneMapped: false
     }), []);
 
-    const handlePrint = (content: string, title?: string, metadata?: any, reportId?: string) => {
+    const handlePrint = React.useCallback((content: string, title?: string, metadata?: any, reportId?: string) => {
         onPrint?.(content, title, metadata, reportId);
-    };
+    }, [onPrint]);
 
     return (
         <group {...props} dispose={null}>
             <RigidBody type="fixed" colliders={false}>
 
                 {/* Computer Screen Overlay (always active, pointer events only when focused) */}
-                {(
+                {!showCompletionFolder && (
                     <group position={[-0.134, 0.967, -0.626]} rotation={[1.485, 0.152, -1.053]} scale={0.307}
                     >
                         <mesh
@@ -96,7 +96,7 @@ export function OfficeModel(props: any) {
                         </mesh>
                         <Html
                             transform
-                            occlude="blending"
+                            occlude="raycast"
                             position={[0, 0, 0]}
                             rotation={[-Math.PI / 2, 0, 0]}
                             scale={0.08}
@@ -104,6 +104,7 @@ export function OfficeModel(props: any) {
                                 width: '1024px',
                                 height: '576px',
                                 display: 'block',
+                                zIndex: 0,
                             }}
                             onPointerEnter={() => {
                                 setIsHoveringScreen(false);
@@ -162,12 +163,12 @@ export function OfficeModel(props: any) {
                     castShadow
                     onClick={(e) => {
                         e.stopPropagation();
-                        if (currentView !== 'COMPUTER') {
+                        if (currentView !== 'COMPUTER' && !showCompletionFolder) {
                             console.log('[ViewChange][Office][MonitorMesh] click', { from: currentView, to: 'COMPUTER' });
                             useGameStore.getState().setView('COMPUTER');
                         }
                     }}
-                    onPointerOver={() => currentView !== 'COMPUTER' && (document.body.style.cursor = 'pointer')}
+                    onPointerOver={() => currentView !== 'COMPUTER' && !showCompletionFolder && (document.body.style.cursor = 'pointer')}
                     onPointerOut={() => document.body.style.cursor = 'auto'}
                     geometry={nodes.Monitor_COMBINED_Baked.geometry}
                     material={materials['Monitor COMBINED_Baked.003']}
@@ -357,5 +358,7 @@ export function OfficeModel(props: any) {
         </group>
     )
 }
+
+export const OfficeModelMemo = React.memo(OfficeModel);
 
 useGLTF.preload('/office.glb')

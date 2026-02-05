@@ -26,7 +26,7 @@ const RadialMenu: React.FC<Props> = ({ position, onSelect, onClose }) => {
 
                     {/* Instructions - Diegetic "Thought" */}
                     <div className="absolute -top-16 text-center w-64 opacity-90">
-                        <span className="bg-black/80 text-white px-2 py-1 font-typewriter text-xs tracking-widest uppercase">Select Connection Type</span>
+                        <span className="text-white px-2 py-1 font-typewriter text-xs tracking-widest uppercase">Select Connection Type</span>
                     </div>
 
                     {/* Center Cancel - Styled as a Scribble */}
@@ -92,4 +92,4 @@ const RadialMenu: React.FC<Props> = ({ position, onSelect, onClose }) => {
     );
 };
 
-export default RadialMenu;
+export default React.memo(RadialMenu);

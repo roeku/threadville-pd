@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import { EvidenceLink, LinkType, DeductionState } from '../types/deduction';
 import { validateLink, isCaseSolved } from '../services/deductionService';
 

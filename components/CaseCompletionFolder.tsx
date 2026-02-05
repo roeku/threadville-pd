@@ -45,7 +45,7 @@ export const CaseCompletionFolder = forwardRef<RapierRigidBody, CaseCompletionFo
         // Debug controls for positioning
         const controls = useControls('CaseCompletionDocument', {
             enabled: true,
-            distance: { value: -0.5, min: -0.8, max: -0.2, step: 0.01 },
+            distance: { value: -0.5, min: -10, max: 0.5, step: 0.01 },
             tiltX: { value: 1.6, min: 0, max: Math.PI, step: 0.1 },
             offsetY: { value: 0, min: -0.5, max: 0.5, step: 0.05 },
         });
@@ -128,7 +128,6 @@ export const CaseCompletionFolder = forwardRef<RapierRigidBody, CaseCompletionFo
             rigidBodyRef.current.setRotation(targetQuat, true);
         });
 
-        if (currentView !== 'DESK') return null;
 
         return (
             <RigidBody
@@ -141,16 +140,17 @@ export const CaseCompletionFolder = forwardRef<RapierRigidBody, CaseCompletionFo
                     onPointerOver={() => setHovered(true)}
                     onPointerOut={() => setHovered(false)}
                     onClick={() => onNextCase()}
+                    renderOrder={1000}
                 >
                     {/* Base Paper Mesh - A4 Size */}
-                    <mesh castShadow receiveShadow>
+                    <mesh castShadow receiveShadow renderOrder={1000}>
                         <boxGeometry args={[0.21, 0.002, 0.297]} />
                         <primitive object={material} attach="material" />
                     </mesh>
 
                     {/* Content Texture */}
                     {texture && (
-                        <mesh position={[0, 0.0011, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                        <mesh position={[0, 0.0011, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={1001}>
                             <planeGeometry args={[0.21, 0.297]} />
                             <meshStandardMaterial
                                 map={texture}
