@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Plus, FileText, Database, Shield } from 'lucide-react';
+import { LayoutDashboard, Plus, FileText, Database, Shield, LogOut, User } from 'lucide-react';
 import CaseList from './CaseList';
 import CaseEditor from './CaseEditor';
+import { useAuth } from '../../contexts/AuthContext';
 
 type View = 'list' | 'create' | 'edit';
 
 export default function AdminDashboard({ onExit }: { onExit: () => void }) {
     const [view, setView] = useState<View>('list');
     const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+    const { user, signOut } = useAuth();
+
+    const handleSignOut = async () => {
+        await signOut();
+        onExit();
+    };
 
     const handleEdit = (id: string) => {
         setSelectedCaseId(id);
@@ -28,6 +35,18 @@ export default function AdminDashboard({ onExit }: { onExit: () => void }) {
                     <span className="font-bold text-lg">ADMIN PORTS</span>
                 </div>
 
+                {user && (
+                    <div className="mb-4 p-3 bg-slate-950 rounded border border-slate-800">
+                        <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                            <User className="w-3 h-3" />
+                            <span>AUTHENTICATED</span>
+                        </div>
+                        <div className="text-sm text-slate-300 font-mono truncate" title={user.email}>
+                            {user.email}
+                        </div>
+                    </div>
+                )}
+
                 <button
                     onClick={() => setView('list')}
                     className={`flex items-center gap-3 px-4 py-2 rounded transition-colors ${view === 'list' ? 'bg-slate-800 text-amber-500' : 'hover:bg-slate-800/50'}`}
@@ -45,6 +64,13 @@ export default function AdminDashboard({ onExit }: { onExit: () => void }) {
                 </button>
 
                 <div className="mt-auto">
+                    <button
+                        onClick={handleSignOut}
+                        className="flex items-center gap-2 text-xs text-slate-500 hover:text-amber-500 w-full px-4 py-2 rounded hover:bg-slate-800/50 transition-colors mb-2"
+                    >
+                        <LogOut className="w-3 h-3" />
+                        SIGN OUT
+                    </button>
                     <button
                         onClick={onExit}
                         className="text-xs text-slate-500 hover:text-slate-300 w-full text-left px-4"

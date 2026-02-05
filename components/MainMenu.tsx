@@ -3,6 +3,8 @@ import { supabase } from '../services/supabase';
 import { CaseFile } from '../types';
 import { Play, Loader2, FolderOpen, Shield } from 'lucide-react';
 import { VIRAL_TOXICITY } from '@/src/data/ViralToxicity';
+import { useAuth } from '../contexts/AuthContext';
+import AdminLogin from './admin/AdminLogin';
 
 interface MainMenuProps {
     onStartCase: (caseData: CaseFile) => void;
@@ -12,6 +14,16 @@ interface MainMenuProps {
 export default function MainMenu({ onStartCase, onOpenAdmin }: MainMenuProps) {
     const [cases, setCases] = useState<{ id: string, title: string, isLocal: boolean }[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showAdminLogin, setShowAdminLogin] = useState(false);
+    const { isAdmin, loading: authLoading } = useAuth();
+
+    // If user is already admin, open admin panel directly
+    useEffect(() => {
+        if (!authLoading && isAdmin && showAdminLogin) {
+            setShowAdminLogin(false);
+            onOpenAdmin();
+        }
+    }, [isAdmin, authLoading, showAdminLogin, onOpenAdmin]);
 
     useEffect(() => {
         const fetchCases = async () => {
@@ -64,6 +76,18 @@ export default function MainMenu({ onStartCase, onOpenAdmin }: MainMenuProps) {
             }
         }
     };
+
+    const handleAdminClick = () => {
+        if (isAdmin) {
+            onOpenAdmin();
+        } else {
+            setShowAdminLogin(true);
+        }
+    };
+
+    if (showAdminLogin) {
+        return <AdminLogin onCancel={() => setShowAdminLogin(false)} />;
+    }
 
     return (
         <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 text-slate-100 p-8">
@@ -120,7 +144,7 @@ export default function MainMenu({ onStartCase, onOpenAdmin }: MainMenuProps) {
 
                 <div className="flex justify-center pt-8">
                     <button
-                        onClick={onOpenAdmin}
+                        onClick={handleAdminClick}
                         className="text-xs text-slate-700 hover:text-slate-500 flex items-center gap-2 transition-colors uppercase tracking-widest font-bold"
                     >
                         <Shield className="w-3 h-3" />

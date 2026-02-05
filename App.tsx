@@ -8,8 +8,9 @@ import { Loader2, Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import MainMenu from './components/MainMenu';
 import AdminDashboard from './components/admin/AdminDashboard';
 import { startCaseSession, completeCaseSession, getSessionReport } from './services/gameProgressService';
+import { AuthProvider } from './contexts/AuthContext';
 
-export default function App() {
+function AppContent() {
   const [gameState, setGameState] = useState<GameState>({
     currentCase: null,
     status: 'briefing',
@@ -411,5 +412,13 @@ export default function App() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
