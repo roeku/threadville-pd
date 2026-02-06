@@ -47,10 +47,12 @@ const caseSchema: Schema = {
         type: Type.OBJECT,
         properties: {
           id: { type: Type.STRING },
-          type: { type: Type.STRING, enum: ["PAPER", "PHOTO", "OBJECT", "FORENSIC_SAMPLE"] },
+          type: { type: Type.STRING, enum: ["PAPER", "PHOTO", "OBJECT", "FORENSIC_SAMPLE", "AUDIO"] },
           label: { type: Type.STRING },
           description: { type: Type.STRING, description: "Visual description for the 3D artist/Image Gen" },
           content: { type: Type.STRING, description: "Summary of content. Will be expanded later." },
+          transcript: { type: Type.STRING, description: "Decoded text content for AUDIO or isLocked items." },
+          isLocked: { type: Type.BOOLEAN, description: "True if this item requires decryption (e.g. phone, laptop)." },
           clues: { type: Type.ARRAY, items: { type: Type.STRING } },
           metadata: {
             type: Type.OBJECT,
@@ -108,6 +110,9 @@ CORE DESIGN PILLARS:
 3. **Forensic Validity**: The solution must rely on HARD evidence (Ballistics, DNA, Fingerprints, Autopsy Temp), not just confessions.
 4. **Complexity**: Generate exactly 6 Suspects and 12 Evidence Entities.
 5. **Name Variety**: Use diverse, contemporary names from various backgrounds. Avoid generic or old-fashioned detective tropes (e.g., no "Thatcher", "Sterling", "Holloway"). 
+6. **Digital Forensics**: You MAY create Locked Devices or Audio Recordings if they fit the narrative, but do not force them.
+   - **Locked Device** (e.g., 'Encrypted Phone') with 'isLocked': true and 'transcript': "The secret content revealed after decryption".
+   - **Audio Recording** (e.g., 'Wiretap', 'Voicemail') with type 'AUDIO' and 'transcript': "The dialogue spoken in the recording".
 
 VALID TEMPLATES: 'autopsy-report', 'bank-statement', 'search-warrant', 'rail-timetable', 'witness-statement', 'transcript', 'incident-report', 'forensic-report', 'case-file-cover', 'lab-submission-form', 'email-printout', 'boarding-pass', 'news-clipping', 'crime-scene-sketch', 'handwritten-note', 'internal-memo', 'letterhead-page', 'server-log'.
 
@@ -203,6 +208,13 @@ export const constructPrompt = (entity: CaseEntity, visualTags?: string): string
       Lighting is 'Rembrandt' style with strong rim light to show silhouette.
       Focus is sharp on the object, blurred background.
       ${UE5_STYLE_SUFFIX} 
+      --no ${NEGATIVE_PROMPTS}`;
+
+    case EntityType.AUDIO:
+      return `${UE5_STYLE_PREFIX} a voice recorder, cassette tape, or USB drive labeled '${label}'.
+      ${description}. ${specificDetails}
+      The object is on an evidence desk.
+      ${UE5_STYLE_SUFFIX}
       --no ${NEGATIVE_PROMPTS}`;
 
     case EntityType.PAPER:
@@ -401,9 +413,34 @@ interface ValidationResult {
   warnings: string[];
 }
 
+import { generateDeductionRules, isCaseSolved, createDeductionState } from "./deductionService"; // Check imports
+
 export const validateCasePlayability = (caseFile: CaseFile): ValidationResult => {
   const errors: string[] = [];
   const warnings: string[] = [];
+
+  // Check Logical Solvability via Deduction System
+  try {
+     const deductionState = createDeductionState(caseFile);
+     if (deductionState.criticalRuleIds.length === 0) {
+        warnings.push("Deduction System Logic: No critical rules generated. Case might be too disconnected.");
+     } else {
+        // Simulate a "perfect game" where all links are found
+        const perfectLinks = deductionState.rules.map(r => ({
+           fromId: r.source,
+           toId: r.target,
+           type: r.type
+        }) as any);
+        
+        const solvedCheck = isCaseSolved(perfectLinks, deductionState);
+        if (!solvedCheck.solved) {
+           errors.push(`Deduction System Logic: Case creates insoluble graph. Missing: ${solvedCheck.missing.join(', ')}`);
+        }
+     }
+  } catch (e: any) {
+     console.error("Deduction validation failed", e);
+     warnings.push("Could not validate logic graph: " + e.message);
+  }
 
   // 1. Suspect validation - all must have biometric data
   caseFile.suspects.forEach(s => {
@@ -466,6 +503,21 @@ export const validateCasePlayability = (caseFile: CaseFile): ValidationResult =>
       warnings.push(`No forensic evidence currently links to culprit "${culprit.name}" - case may be unsolvable by forensics`);
     }
   }
+
+  // 6. Digital Forensics Validation
+  // Validate locked items have transcript/content IF they exist
+  caseFile.entities.filter(e => e.isLocked).forEach(e => {
+     if (!e.transcript && !e.content) {
+       errors.push(`Locked evidence "${e.label}" (${e.id}) missing transcript/content for decryption result`);
+     }
+  });
+
+  // Validate audio items have transcript IF they exist
+  caseFile.entities.filter(e => e.type === EvidenceType.AUDIO || e.type === 'AUDIO').forEach(e => {
+    if (!e.transcript && !e.content) {
+        errors.push(`Audio evidence "${e.label}" (${e.id}) missing transcript/content`);
+    }
+  });
 
   return {
     isValid: errors.length === 0,
@@ -1416,11 +1468,13 @@ const evidenceManifestSchema: Schema = {
         type: Type.OBJECT,
         properties: {
             id: { type: Type.STRING },
-            type: { type: Type.STRING, enum: ["PAPER", "PHOTO", "OBJECT", "FORENSIC_SAMPLE"] },
+            type: { type: Type.STRING, enum: ["PAPER", "PHOTO", "OBJECT", "FORENSIC_SAMPLE", "AUDIO"] },
             label: { type: Type.STRING },
             description: { type: Type.STRING },
             intendedClue: { type: Type.STRING },
             templateId: { type: Type.STRING, enum: AVAILABLE_TEMPLATES },
+            transcript: { type: Type.STRING },
+            isLocked: { type: Type.BOOLEAN },
             forensicType: { type: Type.STRING, enum: ["DNA", "FINGERPRINT", "BLOOD"] },
             // ADDED: Forensic Data Structure
             forensicData: {
@@ -1467,11 +1521,15 @@ export async function generateEvidenceManifest(narrative: CaseNarrative): Promis
 
     VALID TEMPLATE IDS: ${AVAILABLE_TEMPLATES.join(', ')}
 
-    Ensure a mix of:
+    Ensure a mix of evidence types that make sense for this specific story:
     - PAPER: Documents, letters, notes. (MUST include templateId from the valid list.)
     - PHOTO: Crime scene photos. (Set imageUrl to "PENDING".)
     - OBJECT: Physical items (weapons, personal effects).
     - FORENSIC_SAMPLE: DNA, blood, fingerprints. (MUST include forensicType and forensicData with value + description.)
+    
+    DIGITAL & AUDIO EVIDENCE (Use where appropriate for the plot):
+    - AUDIO: Voicemails, wiretaps, recorded confessions. Must include a 'transcript'.
+    - LOCKED DEVICES: Phones, laptops, encrypted drives. Must set 'isLocked': true and provide 'transcript/content' for the unlocked data.
 
     CRITICAL FORENSIC INSTRUCTIONS:
     1. NEVER use "PENDING" for forensicData.value - always provide a real value
@@ -1489,6 +1547,7 @@ export async function generateEvidenceManifest(narrative: CaseNarrative): Promis
     3. Ensure the Murder Weapon is present or implied.
     4. MATCH IDs: If the narrative mentions a weapon, ensure one item represents it.
   `;
+
 
   const response = await genAI.models.generateContent({
     model: "gemini-3-pro-preview",

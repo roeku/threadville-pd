@@ -9,19 +9,36 @@ export const NEGATIVE_PROMPT_SCENE = `--no ${NEGATIVE_PROMPT_COMMON}, bright day
 export const NEGATIVE_PROMPT_CHARACTER = `--no ${NEGATIVE_PROMPT_COMMON}, smiling, posing, perfect skin, makeup, symmetrical face, fashion model`;
 export const NEGATIVE_PROMPT_OBJECT = `--no ${NEGATIVE_PROMPT_COMMON}, floating object, white background, vector art`;
 
-export const constructEvidencePrompt = (entity: EvidenceItem): string => {
+export const constructEvidencePrompt = (entity: EvidenceItem | any): string => {
+  // Debug Log
+  console.log("Constructing prompt for:", entity.label || entity.name);
+
   // Safety Bypass for Body Photos:
   // If the label or content implies a body, we switch to a "Holographic Reconstruction" or "Chalk Outline" style
   // to avoid generating realistic gore which flags filters.
-  const isBody = entity.label.toLowerCase().includes('body') || entity.label.toLowerCase().includes('victim') || entity.content.toLowerCase().includes('dead');
+  const label = (entity.label || entity.name || "Evidence") as string;
+  const content = (entity.content || entity.description || "") as string;
+  
+  const isBody = label.toLowerCase().includes('body') || label.toLowerCase().includes('victim') || content.toLowerCase().includes('dead');
 
   if (isBody) {
      return `A technical forensic sketch or chalk outline of a crime scene victim.
      The image is a high-contrast technical documentation, not a gruesome photo.
      Location: ${entity.metadata?.location || 'Crime Scene'}.
-     Context: ${entity.content.slice(0, 100)}.
+     Context: ${content.slice(0, 100)}.
      Style: Technical illustration, crime scene documentation, black and white or muted colors, no gore.
      ${STYLE_SUFFIX} ${NEGATIVE_PROMPT_SCENE}`;
+  }
+
+  // Handle Suspects specifically (CaseEditor passes suspects here)
+  if (entity.type === 'SUSPECT') {
+      const visualTags = entity.visualTags || "Detailed mugshot";
+      return `A photorealistic mugshot of ${label}.
+      ${visualTags}.
+      The subject looks tired, stressed, or defiant.
+      Lighting is harsh overhead fluorescent or dramatic interrogation lamp.
+      Skin texture is hyper-realistic with pores and imperfections.
+      ${STYLE_SUFFIX} ${NEGATIVE_PROMPT_CHARACTER}`;
   }
 
   switch (entity.type) {
@@ -58,6 +75,12 @@ ${STYLE_SUFFIX} ${NEGATIVE_PROMPT_OBJECT}`;
     case EvidenceType.FORENSIC_SAMPLE:
     case 'FORENSIC_SAMPLE' as any:
          return `A microscope slide or test tube containing ${entity.label}. Lab setting. ${STYLE_SUFFIX}`;
+    
+    case EvidenceType.AUDIO:
+    case 'AUDIO' as any:
+        return `A close-up photo of audio equipment, such as a voice recorder, cassette tape, or a USB drive labeled '${entity.label}'.
+        Placed on an evidence desk.
+        ${STYLE_SUFFIX} ${NEGATIVE_PROMPT_OBJECT}`;
          
     default:
       return `A mysterious piece of evidence. ${STYLE_SUFFIX}`;

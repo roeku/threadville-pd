@@ -23,7 +23,7 @@ export const Spectrograph: React.FC<SpectrographProps> = ({ data }) => {
     }, [data, currentCase]);
 
     // Check if it's audio evidence
-    const isAudio = evidence?.type === 'audio' || evidence?.type === 'video' || evidence?.forensicData?.type === 'AUDIO';
+    const isAudio = evidence?.type === 'AUDIO' || evidence?.type === 'audio' || evidence?.type === 'video' || evidence?.forensicData?.type === 'AUDIO';
 
     // Target settings for this specific audio clip (derived from ID)
     const targetSettings = useMemo(() => {
@@ -54,7 +54,7 @@ export const Spectrograph: React.FC<SpectrographProps> = ({ data }) => {
             date: timestamp,
             evidenceId: evidence.id,
             findings: isLocked
-                ? `Signal isolation complete. Background noise reduced by 94%. Transcript generated from clarified audio stream:\n\n"${evidence.content}"`
+                ? `Signal isolation complete. Background noise reduced by 94%. Transcript generated from clarified audio stream:\n\n"${evidence.transcript || evidence.content}"`
                 : "Signal too noisy for transcription.",
             status: isLocked ? "CONCLUSIVE" : "INCONCLUSIVE",
         };

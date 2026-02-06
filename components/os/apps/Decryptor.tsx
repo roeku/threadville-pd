@@ -78,7 +78,7 @@ export const Decryptor: React.FC<DecryptorProps> = ({ data }) => {
             analyst: 'Automated Cracker',
             date: timestamp,
             evidenceId: evidence.id,
-            findings: `Target device authentication bypassed. Root access granted.\n\nExtracted Password: ${password}\n\nDevice contents mirrored to secure investigation server. Access logs purged.`,
+            findings: `Target device authentication bypassed. Root access granted.\n\nExtracted Password: ${password}\n\nDECRYPTED CONTENT:\n----------------\n${evidence.transcript || evidence.content || "No readable data found."}`,
             status: "MATCH FOUND",
         };
 

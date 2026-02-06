@@ -2,7 +2,8 @@ export enum EvidenceType {
   PAPER = 'PAPER',
   PHOTO = 'PHOTO',
   OBJECT = 'OBJECT',
-  FORENSIC_SAMPLE = 'FORENSIC_SAMPLE'
+  FORENSIC_SAMPLE = 'FORENSIC_SAMPLE',
+  AUDIO = 'AUDIO'
 }
 
 export interface Suspect {
@@ -35,6 +36,7 @@ export interface EvidenceItem {
   };
   metadata?: any; // For structured data like lists, transcripts, etc.
   comparisonImage?: string; // URL for the "original" or "archived" photo for comparison (Negative Clue)
+  isLocked?: boolean; // For devices requiring decryption
 }
 
 export interface CaseSolution {

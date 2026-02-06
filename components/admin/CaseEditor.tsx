@@ -267,10 +267,12 @@ export default function CaseEditor({ mode, caseId, onSave }: CaseEditorProps) {
             };
 
             const validation = runCaseValidation(finalCase);
+            
+            // Allow loading even if invalid, but show error
             if (!validation.isValid) {
-                setError(validation.message || "Case validation failed");
-                setGenerating(false);
-                return;
+                console.error("Case validation failed", validation.message);
+                setError(`Case generated with issues: ${validation.message}`); 
+                // Don't return, allow user to save/fix manually
             }
 
             setCaseData(finalCase);
@@ -278,8 +280,10 @@ export default function CaseEditor({ mode, caseId, onSave }: CaseEditorProps) {
             // Move to standard editor view
         } catch (e: any) {
             setError(e.message || "Failed to finalize case");
+        } finally {
+            setGenerating(false);
+            setEnrichmentProgress(null);
         }
-        setGenerating(false);
     };
 
     const handleGenerate = async () => {
@@ -329,7 +333,7 @@ export default function CaseEditor({ mode, caseId, onSave }: CaseEditorProps) {
         const validation = runCaseValidation(caseData);
         if (!validation.isValid) {
             setError(validation.message || "Case validation failed");
-            return;
+            // return;
         }
         setLoading(true);
 
