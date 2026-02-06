@@ -5,6 +5,7 @@ import { Environment, PerspectiveCamera, Stars, OrbitControls, CameraControls, H
 import { Leva, useControls } from 'leva';
 import * as THREE from 'three';
 import { useGameStore } from '../stores/useGameStore';
+import { useViewport } from '../hooks/useViewport';
 import EvidenceObject from './EvidenceObject';
 import InvestigationBoard from './InvestigationBoard';
 import { OfficeModelMemo as OfficeModel } from './Office';
@@ -296,13 +297,14 @@ const OfficeEnvironment = ({ debugParams }: { debugParams: any }) => {
 };
 
 const SceneLogic = ({
-  focusedItemId, setFocusedItemId, debugParams, deskGroupRef, showHelpers
+  focusedItemId, setFocusedItemId, debugParams, deskGroupRef, showHelpers, viewport
 }: {
   focusedItemId: string | null,
   setFocusedItemId: (id: string | null) => void,
   debugParams: any,
   deskGroupRef: React.RefObject<THREE.Group>,
-  showHelpers?: boolean
+  showHelpers?: boolean,
+  viewport: ReturnType<typeof useViewport>
 }) => {
   const cameraControlsRef = React.useRef<CameraControls>(null);
   const currentView = useGameStore((state) => state.currentView);
@@ -462,7 +464,8 @@ const SceneLogic = ({
         controls.truckSpeed = 2.0;
         controls.dollySpeed = 2.0;
         controls.minDistance = 0.5;
-        controls.maxDistance = 4.0;
+        // Mobile: increase max distance for better overview on narrow screens
+        controls.maxDistance = viewport.isMobile ? 6.0 : 4.0;
 
         tmpWorldB.current.set(
           debugParams.boardPos.x,
@@ -470,10 +473,13 @@ const SceneLogic = ({
           debugParams.boardPos.z
         );
 
+        // Mobile portrait: pull camera back further to show full board
+        const boardCamDistance = viewport.isMobile && viewport.isPortrait ? 2.5 : 1.5;
+
         await controls.setLookAt(
           debugParams.boardPos.x,
           debugParams.boardPos.y + debugParams.sceneLiftY,
-          debugParams.boardPos.z - 1.5,
+          debugParams.boardPos.z - boardCamDistance,
           tmpWorldB.current.x,
           tmpWorldB.current.y,
           tmpWorldB.current.z,
@@ -499,6 +505,11 @@ const SceneLogic = ({
         // SYNC: Before unlocking, ensure our parallax target starts exactly where we landed
         targetLookAt.current.copy(tmpDeskCenterWorld.current);
 
+        // Mobile: Enable touch drag for evidence items
+        if (viewport.isMobile) {
+          controls.touches.one = 0; // Keep disabled - evidence drag handlers will work
+        }
+
         // Reset Inputs
         controls.mouseButtons.right = 0;
         controls.mouseButtons.wheel = 0;
@@ -509,13 +520,43 @@ const SceneLogic = ({
         getDeskWorldPoint(computerLocal, tmpWorldB.current);
         const deskCam = tmpWorldA.current.set(debugParams.cameraPos.x, debugParams.cameraPos.y + debugParams.sceneLiftY, debugParams.cameraPos.z);
         tmpDir.current.copy(deskCam).sub(tmpWorldB.current).normalize();
-        const camPos = tmpWorldA.current.copy(tmpWorldB.current).addScaledVector(tmpDir.current, 0.55).add(new THREE.Vector3(0, -0.08, 0));
+
+        // Mobile-responsive camera positioning
+        let camDistance = 0.55;
+        let yOffset = -0.08;
+
+        if (viewport.isMobile) {
+          // Portrait: pull back more and adjust angle to show full monitor
+          if (viewport.isPortrait) {
+            camDistance = 0.75; // Pull back further
+            yOffset = -0.02;    // Less downward angle
+          } else {
+            // Landscape mobile: moderate adjustment
+            camDistance = 0.65;
+            yOffset = -0.05;
+          }
+        }
+
+        const camPos = tmpWorldA.current.copy(tmpWorldB.current)
+          .addScaledVector(tmpDir.current, camDistance)
+          .add(new THREE.Vector3(0, yOffset, 0));
 
         await controls.setLookAt(
           camPos.x, camPos.y, camPos.z,
           tmpWorldB.current.x, tmpWorldB.current.y, tmpWorldB.current.z,
           true // Animate
         );
+
+        // Enable touch controls for panning OS content
+        if (viewport.isMobile) {
+          controls.touches.one = 2 as typeof controls.touches.one;  // TRUCK (Pan)
+          controls.touches.two = 4 as typeof controls.touches.two;  // DOLLY (Zoom)
+          controls.truckSpeed = 1.0;
+          controls.dollySpeed = 1.0;
+          controls.minDistance = 0.4;
+          controls.maxDistance = 1.2;
+        }
+
         controls.enabled = true;
       }
 
@@ -525,7 +566,7 @@ const SceneLogic = ({
 
     performTransition();
 
-  }, [currentView, getDeskWorldPoint, deskCenterLocal, computerLocal]);
+  }, [currentView, getDeskWorldPoint, deskCenterLocal, computerLocal, viewport]);
 
   return (
     // <OrbitControls />
@@ -563,10 +604,13 @@ const GameScene: React.FC<GameSceneProps> = ({
   pinnedItems, onPinItem, connections, onConnect, isLinkMode,
   caseFile, showCompletionFolder, completionReport, onFolderAction, sessionId, sessionStartTime
 }) => {
+  const viewport = useViewport();
+
   // Debug Logging
   React.useEffect(() => {
     console.log("[GameScene] Render. Evidence Count:", evidence.length);
     console.log("[GameScene] Case File:", caseFile?.title, caseFile?.caseId);
+    console.log("[GameScene] Viewport:", viewport);
 
     // Log invalid positions
     evidence.forEach((e, i) => {
@@ -574,7 +618,7 @@ const GameScene: React.FC<GameSceneProps> = ({
         console.warn(`[GameScene] Warning: Evidence ${e.id} (${e.label}) has no position!`);
       }
     });
-  }, [evidence, caseFile]);
+  }, [evidence, caseFile, viewport]);
 
   // Map of refs for red string lines
   const itemRefs = React.useRef<Record<string, RapierRigidBody | null>>({});
@@ -673,13 +717,15 @@ const GameScene: React.FC<GameSceneProps> = ({
           useGameStore.getState().setView('DESK');
         }
       }}>
-        <Perf position="top-left" />
+        {/* <Perf position="top-left" /> */}
+        <Leva hidden />
         <SceneLogic
           focusedItemId={focusedItemId}
           setFocusedItemId={setFocusedItemId}
           debugParams={debug}
           deskGroupRef={deskGroupRef}
           showHelpers={lighting.showHelpers}
+          viewport={viewport}
         />
         {lighting.showHelpers && (
           <>
@@ -696,7 +742,12 @@ const GameScene: React.FC<GameSceneProps> = ({
         )}
 
         {/* Detective Point of View: Seated looking at desk */}
-        <PerspectiveCamera makeDefault position={[debug.cameraPos.x, debug.cameraPos.y + debug.sceneLiftY, debug.cameraPos.z]} fov={40} />
+        {/* Mobile: wider FOV for better view on small screens */}
+        <PerspectiveCamera
+          makeDefault
+          position={[debug.cameraPos.x, debug.cameraPos.y + debug.sceneLiftY, debug.cameraPos.z]}
+          fov={viewport.isMobile ? 55 : 40}
+        />
 
         {/* HDRI as background - don't set manual background color */}
 
