@@ -1,7 +1,8 @@
 import React, { Suspense, useMemo } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Physics, RigidBody, RapierRigidBody } from '@react-three/rapier';
 import { Environment, PerspectiveCamera, Stars, OrbitControls, CameraControls, Html, useTexture, Box, useHelper, RoundedBox } from '@react-three/drei';
+import { CanvasWrapper } from '@isaac_ua/drei-html-fix';
 import { Leva, useControls } from 'leva';
 import * as THREE from 'three';
 import { useGameStore } from '../stores/useGameStore';
@@ -771,14 +772,18 @@ const GameScene: React.FC<GameSceneProps> = ({
 
   return (
     <div className="w-full h-screen bg-black">
-      <Canvas dpr={[1, 1.5]} shadows onPointerMissed={() => {
-        // Don't change view if in COMPUTER mode (user is interacting with OS)
-        const currentView = useGameStore.getState().currentView;
-        if (currentView === 'COMPUTER') return;
-        setFocusedItemId(null);
-        if (currentView !== 'DESK') {
-          console.log('[ViewChange][Canvas] onPointerMissed', { from: currentView, to: 'DESK' });
-          useGameStore.getState().setView('DESK');
+      <CanvasWrapper canvasProps={{
+        dpr: [1, 1.5],
+        shadows: true,
+        onPointerMissed: () => {
+          // Don't change view if in COMPUTER mode (user is interacting with OS)
+          const currentView = useGameStore.getState().currentView;
+          if (currentView === 'COMPUTER') return;
+          setFocusedItemId(null);
+          if (currentView !== 'DESK') {
+            console.log('[ViewChange][Canvas] onPointerMissed', { from: currentView, to: 'DESK' });
+            useGameStore.getState().setView('DESK');
+          }
         }
       }}>
         {/* <Perf position="top-left" /> */}
@@ -982,7 +987,7 @@ const GameScene: React.FC<GameSceneProps> = ({
           </group>
         </Suspense> */}
 
-      </Canvas>
+      </CanvasWrapper>
       <TextureLoadingOverlay />
     </div>
   );
