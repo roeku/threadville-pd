@@ -326,6 +326,66 @@ const SceneLogic = ({
   // Interaction points in DESK local space
   const computerLocal = React.useMemo(() => new THREE.Vector3(-0.14, 0.97, -0.63), []);
 
+  // Monitor bounds in local desk space (from Office.tsx)
+  // Position: [-0.134, 0.967, -0.626], Rotation: [1.485, 0.152, -1.053], Scale: 0.307
+  // Screen plane size: 1 x 0.9 in local space
+  const monitorBounds = React.useMemo(() => {
+    // Monitor center in desk local space
+    const center = new THREE.Vector3(-0.134, 0.967, -0.626);
+    // Screen dimensions in world space (scaled)
+    const width = 1.0 * 0.307;
+    const height = 0.9 * 0.307;
+    // Create rotation matrix from Euler angles
+    const rotation = new THREE.Euler(1.485, 0.152, -1.053);
+    const rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(rotation);
+
+    // Calculate corner offsets in local screen space
+    const halfWidth = width / 2;
+    const halfHeight = height / 2;
+    const corners = [
+      new THREE.Vector3(-halfWidth, -halfHeight, 0),
+      new THREE.Vector3(halfWidth, -halfHeight, 0),
+      new THREE.Vector3(-halfWidth, halfHeight, 0),
+      new THREE.Vector3(halfWidth, halfHeight, 0),
+    ];
+
+    // Transform corners to world space
+    const worldCorners = corners.map(corner => {
+      return corner.applyMatrix4(rotationMatrix).add(center);
+    });
+
+    return { center, worldCorners, width, height };
+  }, []);
+
+  // Calculate camera distance to fit monitor in view
+  const calculateMonitorCameraDistance = React.useCallback((fov: number, aspectRatio: number) => {
+    // Get monitor corners in desk local space
+    const { center, worldCorners } = monitorBounds;
+
+    // Calculate the bounding radius (distance from center to farthest corner)
+    const boundingRadius = Math.max(
+      ...worldCorners.map(corner => corner.distanceTo(center))
+    );
+
+    // Add padding factor to ensure monitor doesn't touch screen edges
+    // Increased padding for mobile to ensure full visibility with comfortable margin
+    const padding = aspectRatio < 1 ? 1.5 : 1.35; // 50% for portrait, 35% for landscape/desktop
+    const paddedRadius = boundingRadius * padding;
+
+    // Calculate required distance based on FOV
+    // For vertical FOV, we use: distance = radius / tan(fov/2)
+    // For aspect ratio < 1 (portrait), we need to account for horizontal FOV too
+    const fovRad = (fov * Math.PI) / 180;
+    const vFov = fovRad;
+    const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspectRatio);
+
+    // Use the smaller FOV (more restrictive) to calculate distance
+    const effectiveFov = aspectRatio < 1 ? hFov : vFov;
+    const distance = paddedRadius / Math.tan(effectiveFov / 2);
+
+    return distance;
+  }, [monitorBounds]);
+
   // Temp vectors for calculations
   const tmpWorldA = React.useRef(new THREE.Vector3());
   const tmpWorldB = React.useRef(new THREE.Vector3());
@@ -521,29 +581,33 @@ const SceneLogic = ({
         const deskCam = tmpWorldA.current.set(debugParams.cameraPos.x, debugParams.cameraPos.y + debugParams.sceneLiftY, debugParams.cameraPos.z);
         tmpDir.current.copy(deskCam).sub(tmpWorldB.current).normalize();
 
-        // Mobile-responsive camera positioning
-        let camDistance = 0.55;
-        let yOffset = -0.08;
+        // Calculate optimal camera distance to fit monitor in view
+        const currentFov = viewport.isMobile ? 55 : 40;
+        const optimalDistance = calculateMonitorCameraDistance(currentFov, viewport.aspectRatio);
+
+        // Use the calculated distance, with a minimum to prevent getting too close
+        const camDistance = Math.max(optimalDistance, 0.5);
+
+        // Adjust camera position based on viewport
+        let yOffset = -0.08; // Default desktop
+        let lookAtYOffset = 0;
 
         if (viewport.isMobile) {
-          // Portrait: pull back more and adjust angle to show full monitor
-          if (viewport.isPortrait) {
-            camDistance = 0.75; // Pull back further
-            yOffset = -0.02;    // Less downward angle
-          } else {
-            // Landscape mobile: moderate adjustment
-            camDistance = 0.65;
-            yOffset = -0.05;
-          }
+          // Mobile: lift camera slightly to center the monitor better
+          yOffset = viewport.isPortrait ? 0.05 : 0.0;
+          lookAtYOffset = viewport.isPortrait ? 0.03 : 0.02;
         }
 
         const camPos = tmpWorldA.current.copy(tmpWorldB.current)
           .addScaledVector(tmpDir.current, camDistance)
           .add(new THREE.Vector3(0, yOffset, 0));
 
+        // Adjust look-at target for mobile to center the view better
+        const lookAtTarget = tmpWorldB.current.clone().add(new THREE.Vector3(0, lookAtYOffset, 0));
+
         await controls.setLookAt(
           camPos.x, camPos.y, camPos.z,
-          tmpWorldB.current.x, tmpWorldB.current.y, tmpWorldB.current.z,
+          lookAtTarget.x, lookAtTarget.y, lookAtTarget.z,
           true // Animate
         );
 
@@ -553,8 +617,8 @@ const SceneLogic = ({
           controls.touches.two = 4 as typeof controls.touches.two;  // DOLLY (Zoom)
           controls.truckSpeed = 1.0;
           controls.dollySpeed = 1.0;
-          controls.minDistance = 0.4;
-          controls.maxDistance = 1.2;
+          controls.minDistance = 0.5;
+          controls.maxDistance = camDistance * 3; // Allow zooming out to 2x the optimal distance
         }
 
         controls.enabled = true;
@@ -566,7 +630,7 @@ const SceneLogic = ({
 
     performTransition();
 
-  }, [currentView, getDeskWorldPoint, deskCenterLocal, computerLocal, viewport]);
+  }, [currentView, getDeskWorldPoint, deskCenterLocal, computerLocal, viewport, calculateMonitorCameraDistance]);
 
   return (
     // <OrbitControls />
