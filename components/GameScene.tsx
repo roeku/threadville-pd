@@ -298,14 +298,18 @@ const OfficeEnvironment = ({ debugParams }: { debugParams: any }) => {
 };
 
 const SceneLogic = ({
-  focusedItemId, setFocusedItemId, debugParams, deskGroupRef, showHelpers, viewport
+  focusedItemId, setFocusedItemId, debugParams, deskGroupRef, showHelpers, viewport, phoneDir, phoneCamDistance, phoneCamRotation, phoneLookAtTargetRef
 }: {
   focusedItemId: string | null,
   setFocusedItemId: (id: string | null) => void,
   debugParams: any,
   deskGroupRef: React.RefObject<THREE.Group>,
   showHelpers?: boolean,
-  viewport: ReturnType<typeof useViewport>
+  viewport: ReturnType<typeof useViewport>,
+  phoneDir?: any,
+  phoneCamDistance?: number,
+  phoneCamRotation?: { x: number; y: number; z: number },
+  phoneLookAtTargetRef?: React.RefObject<THREE.Group>,
 }) => {
   const cameraControlsRef = React.useRef<CameraControls>(null);
   const currentView = useGameStore((state) => state.currentView);
@@ -320,6 +324,17 @@ const SceneLogic = ({
   const isInitialized = React.useRef(false);
   const targetLookAt = React.useRef(new THREE.Vector3());
   const tmpDeskCenterWorld = React.useRef(new THREE.Vector3());
+
+  // Find PhoneLookAtTarget group in scene
+  const scene = useThree().scene;
+  React.useEffect(() => {
+    if (phoneLookAtTargetRef && deskGroupRef.current) {
+      const target = deskGroupRef.current.getObjectByName('PhoneLookAtTarget') as THREE.Group | undefined;
+      if (target) {
+        phoneLookAtTargetRef.current = target;
+      }
+    }
+  }, [deskGroupRef, phoneLookAtTargetRef]);
 
   // Desk/table surface center in local space for scene-v1.glb.
   // components/Office.tsx places the table collider at position [0, 0.74, 0].
@@ -623,6 +638,40 @@ const SceneLogic = ({
         }
 
         controls.enabled = true;
+
+      } else if (currentView === 'PHONE') {
+        // --- PHONE VIEW ---
+        console.log('[GameScene] PHONE view transition starting');
+        // Phone position from Office.tsx: [0.155, 0.746, 0.513]
+        // Screen is offset by z: -0.076 from phone group center
+        const phoneLocal = new THREE.Vector3(0.05, 0.72, 0.55);
+        getDeskWorldPoint(phoneLocal, tmpWorldB.current);
+        console.log('[GameScene] Phone screen world position:', tmpWorldB.current);
+
+        // Position camera directly above phone (top-down view)
+        const phoneDirNormalized = new THREE.Vector3(phoneDir.x, phoneDir.y, phoneDir.z).normalize();
+        const phoneCamPos = tmpWorldB.current.clone()
+          .addScaledVector(phoneDirNormalized, phoneCamDistance);
+
+        console.log('[GameScene] Camera position:', phoneCamPos, 'Looking at:', tmpWorldB.current);
+
+        // Apply rotation to camera around the look-at point
+        const rotation = phoneCamRotation || { x: 0, y: 0, z: 0 };
+        const rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(
+          new THREE.Euler(rotation.x, rotation.y, rotation.z)
+        );
+        const offsetFromTarget = phoneCamPos.clone().sub(tmpWorldB.current);
+        offsetFromTarget.applyMatrix4(rotationMatrix);
+        const rotatedCamPos = tmpWorldB.current.clone().add(offsetFromTarget);
+
+        await controls.setLookAt(
+          rotatedCamPos.x, rotatedCamPos.y, rotatedCamPos.z,
+          tmpWorldB.current.x, tmpWorldB.current.y, tmpWorldB.current.z,
+          true // Animate
+        );
+
+        console.log('[GameScene] PHONE view camera transition complete, controls disabled');
+        controls.enabled = false; // Phone UI handles all input
       }
 
       // UNLOCK: Allow useFrame to take over again
@@ -631,7 +680,7 @@ const SceneLogic = ({
 
     performTransition();
 
-  }, [currentView, getDeskWorldPoint, deskCenterLocal, computerLocal, viewport, calculateMonitorCameraDistance]);
+  }, [currentView, getDeskWorldPoint, deskCenterLocal, computerLocal, viewport, calculateMonitorCameraDistance, phoneDir, phoneCamDistance, phoneCamRotation]);
 
   return (
     // <OrbitControls />
@@ -747,6 +796,26 @@ const GameScene: React.FC<GameSceneProps> = ({
     backRimColor: '#2a4a6a',
   });
 
+  const { phoneDir, phoneCamDistance, phoneCamRotation } = useControls('Phone Camera', {
+    phoneDir: {
+      value: { x: 0, y: 20, z: -2 },
+      step: 0.01,
+    },
+    phoneCamDistance: {
+      value: 0.4,
+      min: 0.1,
+      max: 2.0,
+      step: 0.05,
+    },
+    phoneCamRotation: {
+      value: { x: 0, y: 0, z: 0 },
+      step: 0.01,
+      label: 'rotation (x/y/z)',
+    },
+  });
+
+  const phoneLookAtTargetRef = React.useRef<THREE.Group>(null);
+
   const lighting = lightingAndHelpers;
 
   const debug = {
@@ -772,13 +841,15 @@ const GameScene: React.FC<GameSceneProps> = ({
 
   return (
     <div className="w-full h-screen bg-black">
+      {/* <Leva hidden /> */}
+
       <CanvasWrapper canvasProps={{
         dpr: [1, 1.5],
         shadows: true,
         onPointerMissed: () => {
-          // Don't change view if in COMPUTER mode (user is interacting with OS)
+          // Don't change view if in COMPUTER or PHONE mode (user is interacting with OS)
           const currentView = useGameStore.getState().currentView;
-          if (currentView === 'COMPUTER') return;
+          if (currentView === 'COMPUTER' || currentView === 'PHONE') return;
           setFocusedItemId(null);
           if (currentView !== 'DESK') {
             console.log('[ViewChange][Canvas] onPointerMissed', { from: currentView, to: 'DESK' });
@@ -787,7 +858,6 @@ const GameScene: React.FC<GameSceneProps> = ({
         }
       }}>
         {/* <Perf position="top-left" /> */}
-        <Leva hidden />
         <SceneLogic
           focusedItemId={focusedItemId}
           setFocusedItemId={setFocusedItemId}
@@ -795,6 +865,10 @@ const GameScene: React.FC<GameSceneProps> = ({
           deskGroupRef={deskGroupRef}
           showHelpers={lighting.showHelpers}
           viewport={viewport}
+          phoneDir={phoneDir}
+          phoneCamDistance={phoneCamDistance}
+          phoneCamRotation={phoneCamRotation}
+          phoneLookAtTargetRef={phoneLookAtTargetRef}
         />
         {lighting.showHelpers && (
           <>
@@ -883,7 +957,7 @@ const GameScene: React.FC<GameSceneProps> = ({
         </Box>
 
         {/* Cyclorama curved backdrop - pre-blurred city image */}
-        <CityCyclorama imagePath="/flat-city-blurred.jpg" />
+        <CityCyclorama imagePath="/flat-city-blurred.jpg" position={[0, 5, 0]} />
 
         {/* Wrap entire scene in a group to lift everything together */}
         <group position={[0, sceneLiftY, 0]}>

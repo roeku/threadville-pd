@@ -380,6 +380,8 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateDefinition> = {
         }
     },
     'evidence-document': {
+        width: 816,
+        height: 1056,
         render: ({ getValue, getBodyFallback, getTitleFallback }) => {
             const evidenceData = {
                 label: getTitleFallback(),
@@ -391,7 +393,10 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateDefinition> = {
                 dateCollected: getValue('dateCollected', getValue('date', 'Not Recorded')),
                 chainOfCustody: getValue('chainOfCustody', 'Intact'),
                 notes: getValue('notes', undefined),
-                forensicAnalysis: getValue('forensicAnalysis', undefined)
+                forensicAnalysis: getValue('forensicAnalysis', undefined),
+                imageUrl: getValue('imageUrl', undefined),
+                __pageWidth: 816,
+                __pageHeight: 1056
             };
             return <EvidenceDocumentTemplate data={evidenceData} />;
         }

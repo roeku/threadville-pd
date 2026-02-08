@@ -3,7 +3,23 @@ import { useShallow } from 'zustand/react/shallow';
 import { EvidenceLink, LinkType, DeductionState } from '../types/deduction';
 import { validateLink, isCaseSolved } from '../services/deductionService';
 
-export type GameView = 'DESK' | 'BOARD' | 'EVIDENCE' | 'COMPUTER' | 'CABINET';
+export type GameView = 'DESK' | 'BOARD' | 'EVIDENCE' | 'COMPUTER' | 'CABINET' | 'PHONE';
+
+export type InterrogationSender = 'PLAYER' | 'SUSPECT' | 'SYSTEM';
+
+export interface InterrogationMessage {
+  id: string;
+  sender: InterrogationSender;
+  text: string;
+  timestamp: number;
+}
+
+export interface InterrogationSession {
+  caseId: string;
+  suspectId: string;
+  messages: InterrogationMessage[];
+  lastUpdated: number;
+}
 
 interface StoreState {
   currentView: GameView;
@@ -14,7 +30,7 @@ interface StoreState {
   // Session State
   unlockedForensics: Set<string>;
   uncoveredClues: Set<string>;
-  printQueue: { content: string, title?: string, metadata?: any }[];
+  printQueue: { content: string, title?: string, metadata?: any, reportId?: string }[];
 
   // Game Progress Tracking
   sessionId: string | null;
@@ -48,6 +64,11 @@ interface StoreState {
   setSolved: (s: boolean) => void;
   solvProgress: number;
   
+  // Accusation State - ready to accuse but not yet confirmed
+  accusationReady: boolean;
+  setAccusationReady: (ready: boolean) => void;
+  confirmAccusation: () => void;
+  
   // Interaction State
   linkingFromId: string | null;
   setLinkingFromId: (id: string | null) => void;
@@ -59,6 +80,16 @@ interface StoreState {
   // Pointer State
   isPointerOnComputer: boolean;
   setIsPointerOnComputer: (isOn: boolean) => void;
+
+  // OS Integration
+  pendingOsApp: string | null;
+  setPendingOsApp: (appId: string | null) => void;
+
+  // Interrogation Sessions
+  interrogationSessions: Record<string, InterrogationSession>;
+  appendInterrogationMessage: (caseId: string, suspectId: string, message: InterrogationMessage) => void;
+  clearInterrogationSession: (caseId: string, suspectId: string) => void;
+  clearAllInterrogations: () => void;
   
   // Actions
   setView: (view: GameView) => void;
@@ -93,7 +124,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
   
   // Deduction state
   deductionState: null,
-  setDeductionState: (state) => set({ deductionState: state }),
+  setDeductionState: (state) => set({ deductionState: state, solved: false, accusationReady: false, solvProgress: 0 }),
   
   links: [],
   solved: false,
@@ -101,7 +132,20 @@ export const useGameStore = create<StoreState>((set, get) => ({
   
   setSolved: (s) => set({ solved: s }),
   
+  accusationReady: false,
+  setAccusationReady: (ready) => set({ accusationReady: ready }),
+  confirmAccusation: () => set((state) => {
+    if (state.accusationReady) {
+      return {
+        solved: true,
+        accusationReady: false,
+      };
+    }
+    return state;
+  }),
+  
   addLink: (fromId, toId) => {
+    if (get().solved) return '';
     // Prevent self loop
     if (fromId === toId) return '';
     
@@ -122,21 +166,90 @@ export const useGameStore = create<StoreState>((set, get) => ({
         status: 'UNCHECKED' 
       };
       
-      return { links: [...state.links, newLink] };
+      const updatedLinks = [...state.links, newLink];
+      
+      // Auto-validate all links
+      if (state.deductionState) {
+        const validatedLinks = updatedLinks.map(link => {
+          const validation = validateLink(link, state.deductionState!);
+          return {
+            ...link,
+            status: validation.isValid ? 'VALID' : 'INVALID' as const,
+            reasoning: validation.reason,
+          };
+        });
+        const solveResult = isCaseSolved(validatedLinks, state.deductionState);
+        return {
+          links: validatedLinks,
+          accusationReady: solveResult.solved,
+          solvProgress: solveResult.progress,
+        };
+      }
+      
+      return { links: updatedLinks };
     });
     return id;
   },
   
   updateLinkType: (id, type) => set((state) => {
+    if (state.solved) {
+      return { links: state.links };
+    }
     const updatedLinks = state.links.map(l => 
       l.id === id ? { ...l, type } : l
     );
+    
+    // Auto-validate all links
+    if (state.deductionState) {
+      const validatedLinks = updatedLinks.map(link => {
+        const validation = validateLink(link, state.deductionState!);
+        return {
+          ...link,
+          status: validation.isValid ? 'VALID' : 'INVALID' as const,
+          reasoning: validation.reason,
+        };
+      });
+      const solveResult = isCaseSolved(validatedLinks, state.deductionState);
+      return {
+        links: validatedLinks,
+        accusationReady: solveResult.solved,
+        solvProgress: solveResult.progress,
+      };
+    }
+    
     return { links: updatedLinks };
   }),
   
-  removeLink: (id) => set((state) => ({
-    links: state.links.filter(l => l.id !== id)
-  })),
+  removeLink: (id) => set((state) => {
+    if (state.solved) {
+      return { links: state.links };
+    }
+    const updatedLinks = state.links.filter(l => l.id !== id);
+    
+    // Auto-validate remaining links
+    if (state.deductionState && updatedLinks.length > 0) {
+      const validatedLinks = updatedLinks.map(link => {
+        const validation = validateLink(link, state.deductionState!);
+        return {
+          ...link,
+          status: validation.isValid ? 'VALID' : 'INVALID' as const,
+          reasoning: validation.reason,
+        };
+      });
+      const solveResult = isCaseSolved(validatedLinks, state.deductionState);
+      return {
+        links: validatedLinks,
+        accusationReady: solveResult.solved,
+        solvProgress: solveResult.progress,
+      };
+    }
+    
+    return {
+      links: updatedLinks,
+      accusationReady: false,
+      solvProgress: 0,
+    };
+  }),
   
   setLinkStatus: (id, status, reasoning) => set((state) => ({
     links: state.links.map(l => 
@@ -144,7 +257,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
     )
   })),
   
-  clearLinks: () => set({ links: [], solved: false, solvProgress: 0 }),
+  clearLinks: () => set({ links: [], solved: false, accusationReady: false, solvProgress: 0 }),
   
   validateAndMarkLinks: () => set((state) => {
     if (!state.deductionState) return state;
@@ -159,12 +272,12 @@ export const useGameStore = create<StoreState>((set, get) => ({
       };
     });
     
-    // Check if case is solved
+    // Check if case is ready for accusation
     const solveResult = isCaseSolved(validatedLinks, state.deductionState);
     
     return {
       links: validatedLinks,
-      solved: solveResult.solved,
+      accusationReady: solveResult.solved,
       solvProgress: solveResult.progress,
     };
   }),
@@ -178,6 +291,33 @@ export const useGameStore = create<StoreState>((set, get) => ({
 
   isPointerOnComputer: false,
   setIsPointerOnComputer: (isOn) => set({ isPointerOnComputer: isOn }),
+
+  pendingOsApp: null,
+  setPendingOsApp: (appId) => set({ pendingOsApp: appId }),
+
+  interrogationSessions: {},
+  appendInterrogationMessage: (caseId, suspectId, message) => set((state) => {
+    const key = `${caseId}:${suspectId}`;
+    const existing = state.interrogationSessions[key];
+    const messages = existing?.messages ?? [];
+    return {
+      interrogationSessions: {
+        ...state.interrogationSessions,
+        [key]: {
+          caseId,
+          suspectId,
+          messages: [...messages, message],
+          lastUpdated: Date.now(),
+        }
+      }
+    };
+  }),
+  clearInterrogationSession: (caseId, suspectId) => set((state) => {
+    const key = `${caseId}:${suspectId}`;
+    const { [key]: _, ...rest } = state.interrogationSessions;
+    return { interrogationSessions: rest };
+  }),
+  clearAllInterrogations: () => set({ interrogationSessions: {} }),
 
   setDocumentPage: (id, page) => set((state) => ({
     documentStates: {

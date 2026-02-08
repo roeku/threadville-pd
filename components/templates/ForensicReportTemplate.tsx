@@ -39,16 +39,12 @@ export const ForensicReportTemplate: React.FC<Props> = ({ data }) => {
                     <span className="text-gray-500 uppercase">Analyst:</span>
                     <span>{data.analyst}</span>
                 </div>
-                {data.evidenceId && (
+                {(data.subject || data.evidenceId) && (
                     <div className="flex justify-between">
-                        <span className="text-gray-500 uppercase">Evidence ID:</span>
-                        <span>{data.evidenceId}</span>
-                    </div>
-                )}
-                {data.subject && (
-                    <div className="flex justify-between">
-                        <span className="text-gray-500 uppercase">Subject:</span>
-                        <span>{data.subject}</span>
+                        <span className="text-gray-500 uppercase">
+                            {data.subject ? 'Evidence' : 'Evidence ID'}:
+                        </span>
+                        <span>{data.subject || data.evidenceId}</span>
                     </div>
                 )}
             </div>

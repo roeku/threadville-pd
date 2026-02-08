@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { CaseFile } from '../types';
-import { Play, Loader2, FolderOpen, Shield } from 'lucide-react';
+import { Play, Loader2, FolderOpen, Shield, BookOpen } from 'lucide-react';
 import { VIRAL_TOXICITY } from '@/src/data/ViralToxicity';
 import { useAuth } from '../contexts/AuthContext';
 import AdminLogin from './admin/AdminLogin';
@@ -85,6 +85,15 @@ export default function MainMenu({ onStartCase, onOpenAdmin }: MainMenuProps) {
         }
     };
 
+    const handleResetTutorial = () => {
+        // Reset tutorial in localStorage
+        localStorage.removeItem('cold-case-tutorial-completed');
+        // Start first case which will trigger tutorial
+        if (cases.length > 0) {
+            handleCaseSelect(cases[0]);
+        }
+    };
+
     if (showAdminLogin) {
         return <AdminLogin onCancel={() => setShowAdminLogin(false)} />;
     }
@@ -134,7 +143,7 @@ export default function MainMenu({ onStartCase, onOpenAdmin }: MainMenuProps) {
                                                 CASE ID: {c.id || 'UNK'}
                                             </p>
                                         </div>
-                                        <Play className="w-5 h-5 text-slate-700 group-hover:text-amber-500 transition-colors" />
+                                        <Play className="w-5 h-5 text-slate-700 group:text-amber-500 transition-colors" />
                                     </div>
                                 </button>
                             ))
@@ -142,7 +151,14 @@ export default function MainMenu({ onStartCase, onOpenAdmin }: MainMenuProps) {
                     </div>
                 </div>
 
-                <div className="flex justify-center pt-8">
+                <div className="flex justify-center gap-6 pt-8">
+                    <button
+                        onClick={handleResetTutorial}
+                        className="text-xs text-slate-700 hover:text-blue-400 flex items-center gap-2 transition-colors uppercase tracking-widest font-bold"
+                    >
+                        <BookOpen className="w-3 h-3" />
+                        Tutorial
+                    </button>
                     <button
                         onClick={handleAdminClick}
                         className="text-xs text-slate-700 hover:text-slate-500 flex items-center gap-2 transition-colors uppercase tracking-widest font-bold"

@@ -1059,6 +1059,61 @@ export const generateDocumentContent = async (
 };
 
 // =============================================================================
+// IMAGE STORAGE - Upload helper for Supabase bucket storage
+// =============================================================================
+
+/**
+ * Upload a base64 image to Supabase bucket and return the public URL
+ * @param base64Image - Base64 encoded image with or without data URI prefix
+ * @param filename - Filename for the uploaded image (without path)
+ * @returns Public URL of the uploaded image
+ */
+const uploadImageToSupabase = async (base64Image: string, filename: string): Promise<string> => {
+  try {
+    // Strip the data URI prefix if present (e.g. "data:image/png;base64,")
+    const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
+    
+    // Convert base64 to Blob
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: 'image/png' });
+
+    // Upload to Supabase bucket
+    const filepath = `case-assets/${filename}`;
+    const { data, error } = await supabase.storage
+      .from('case-assets')
+      .upload(filepath, blob, { upsert: true });
+
+    if (error) {
+      console.error('Supabase upload error:', error);
+      throw new Error(`Failed to upload image: ${error.message}`);
+    }
+
+    if (!data) {
+      throw new Error('No data returned from Supabase upload');
+    }
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from('case-assets')
+      .getPublicUrl(filepath);
+
+    if (!publicUrlData?.publicUrl) {
+      throw new Error('Failed to get public URL from Supabase');
+    }
+
+    console.log(`✓ Image uploaded to: ${publicUrlData.publicUrl}`);
+    return publicUrlData.publicUrl;
+  } catch (error) {
+    console.error('Image upload failed:', error);
+    throw error;
+  }
+};
+
+// =============================================================================
 // IMAGE GENERATION - Used by both main app and sub-apps
 // =============================================================================
 
@@ -1066,7 +1121,7 @@ export const generateDocumentContent = async (
 export const STYLE_SUFFIX = "Rendered in Unreal Engine 5, high fidelity 3D game art, cinematic lighting, volumetric fog, detailed textures, realistic atmosphere, clinical lighting, forensic aesthetic.";
 
 // Aggressive Negative Prompts to ensure NO UI appears in the game art
-export const NEGATIVE_PROMPT_COMMON = "UI, HUD, interface, text, watermark, health bar, minimap, crosshair, icons, menu, subtitles, game overlay, button prompt, cartoon, low poly, drawing, anime, sketch, painting, 2D";
+export const NEGATIVE_PROMPT_COMMON = "UI, HUD, interface, text, watermark, health bar, minimap, crosshair, icons, menu, subtitles, game overlay, button prompt, cartoon, low poly, drawing, anime, sketch, painting, 2D, a placard, board";
 
 export const NEGATIVE_PROMPT_SCENE = `--no ${NEGATIVE_PROMPT_COMMON}, bright daylight, flat lighting, blur`;
 export const NEGATIVE_PROMPT_CHARACTER = `--no ${NEGATIVE_PROMPT_COMMON}, smiling, posing, perfect skin, makeup, symmetrical face, fashion model`;
@@ -1109,10 +1164,13 @@ export const generateAssetImage = async (prompt: string): Promise<string> => {
     // Iterate through parts to find the image
     const parts = response.candidates?.[0]?.content?.parts;
     let textResponse = "";
+    let base64Image: string | null = null;
+    
     if (parts) {
       for (const part of parts) {
         if (part.inlineData && part.inlineData.data) {
-          return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+          base64Image = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+          break;
         }
         if (part.text) {
             textResponse += part.text;
@@ -1120,13 +1178,20 @@ export const generateAssetImage = async (prompt: string): Promise<string> => {
       }
     }
     
-    console.log("Full Gemini Response for Image Gen Error:", JSON.stringify(response, null, 2));
-
-    if (textResponse) {
-        throw new Error("Gemini returned text instead of image: " + textResponse.substring(0, 200) + "...");
+    if (!base64Image) {
+      console.log("Full Gemini Response for Image Gen Error:", JSON.stringify(response, null, 2));
+      if (textResponse) {
+          throw new Error("Gemini returned text instead of image: " + textResponse.substring(0, 200) + "...");
+      }
+      throw new Error("No image data received from Gemini. Check console for full response object.");
     }
+
+    // Upload to Supabase and get public URL
+    const timestamp = Date.now();
+    const filename = `asset-${timestamp}-${Math.random().toString(36).substring(7)}.png`;
+    const publicUrl = await uploadImageToSupabase(base64Image, filename);
     
-    throw new Error("No image data received from Gemini. Check console for full response object.");
+    return publicUrl;
 
   } catch (error) {
     console.error("Error generating asset:", error);
@@ -1168,15 +1233,27 @@ export const editAssetImage = async (base64Image: string, instruction: string): 
 
      // Iterate through parts to find the image
      const parts = response.candidates?.[0]?.content?.parts;
+     let editedBase64: string | null = null;
+     
      if (parts) {
        for (const part of parts) {
          if (part.inlineData && part.inlineData.data) {
-           return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+           editedBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+           break;
          }
        }
      }
      
-     throw new Error("No image data received from Gemini after edit.");
+     if (!editedBase64) {
+       throw new Error("No image data received from Gemini after edit.");
+     }
+
+     // Upload edited image to Supabase and return URL
+     const timestamp = Date.now();
+     const filename = `asset-edited-${timestamp}-${Math.random().toString(36).substring(7)}.png`;
+     const publicUrl = await uploadImageToSupabase(editedBase64, filename);
+     
+     return publicUrl;
 
   } catch (error) {
     console.error("Error editing asset:", error);

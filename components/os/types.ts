@@ -1,7 +1,7 @@
 import React, { ReactNode } from 'react';
 import { CaseFile } from '../../types';
 
-export type AppId = 'dna' | 'fingerprint' | 'spectrograph' | 'evidence' | 'settings' | 'decryptor' | 'image_viewer' | 'document_viewer' | 'evidence_catalog';
+export type AppId = 'dna' | 'fingerprint' | 'spectrograph' | 'evidence' | 'settings' | 'decryptor' | 'image_viewer' | 'document_viewer' | 'evidence_catalog' | 'interrogation';
 
 export interface WindowState {
   id: string;

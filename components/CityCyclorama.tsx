@@ -1,12 +1,14 @@
 import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { useTexture } from '@react-three/drei';
+import { Vector3 } from 'three';
 
 interface CityCycloramaProps {
     imagePath: string;
+    position: number | Vector3 | [x: number, y: number, z: number]
 }
 
-export const CityCyclorama: React.FC<CityCycloramaProps> = ({ imagePath, ...props }) => {
+export const CityCyclorama: React.FC<CityCycloramaProps> = ({ imagePath, position, ...props }) => {
     const texture = useTexture(imagePath);
 
     const cylinderArgs = useMemo(() => {
@@ -41,7 +43,7 @@ export const CityCyclorama: React.FC<CityCycloramaProps> = ({ imagePath, ...prop
 
     return (
         // Curved backdrop positioned outside the window view
-        <mesh {...props}>
+        <mesh position={position} {...props}>
             <cylinderGeometry args={cylinderArgs} />
             <primitive object={material} attach="material" />
         </mesh>

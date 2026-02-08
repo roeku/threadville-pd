@@ -4,11 +4,14 @@ import { generateTTS } from './services/geminiService';
 import { useGameStore } from './stores/useGameStore';
 import { createDeductionState } from './services/deductionService';
 import { GameState, EvidenceType, CaseFile } from './types';
-import { Loader2, Play, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Play, ChevronLeft, ChevronRight, HelpCircle } from 'lucide-react';
 import MainMenu from './components/MainMenu';
 import AdminDashboard from './components/admin/AdminDashboard';
 import { startCaseSession, completeCaseSession, getSessionReport } from './services/gameProgressService';
 import { AuthProvider } from './contexts/AuthContext';
+import GameHelp from './components/GameHelp';
+import InGameTutorial from './components/InGameTutorial';
+import { useTutorial } from './hooks/useTutorial';
 
 function AppContent() {
   const [gameState, setGameState] = useState<GameState>({
@@ -23,7 +26,11 @@ function AppContent() {
   const [completionReport, setCompletionReport] = useState<any>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [showGameHelp, setShowGameHelp] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Tutorial system
+  const tutorial = useTutorial();
 
   // New State for Board
   const [pinnedItems, setPinnedItems] = useState<Set<string>>(new Set());
@@ -34,13 +41,20 @@ function AppContent() {
   const handlePinItem = (id: string, pinned: boolean) => {
     setPinnedItems(prev => {
       const next = new Set(prev);
-      if (pinned) next.add(id);
-      else next.delete(id);
+      if (pinned) {
+        next.add(id);
+        // Track for tutorial
+        tutorial.trackPin();
+      } else {
+        next.delete(id);
+      }
       return next;
     });
   };
 
   const handleConnection = (id1: string, id2: string) => {
+    // Track for tutorial
+    tutorial.trackLink();
     if (id1 === id2) return;
     // Check if exists
     const exists = connections.some(c => (c[0] === id1 && c[1] === id2) || (c[0] === id2 && c[1] === id1));
@@ -52,6 +66,7 @@ function AppContent() {
   const { setFocusedItem } = useGameStore();
   const setDeductionState = useGameStore(state => state.setDeductionState);
   const clearLinks = useGameStore(state => state.clearLinks);
+  const clearAllInterrogations = useGameStore(state => state.clearAllInterrogations);
   const setView = useGameStore(state => state.setView);
   const documentStates = useGameStore(state => state.documentStates);
   const setDocumentPage = useGameStore(state => state.setDocumentPage);
@@ -69,9 +84,30 @@ function AppContent() {
   const handleFocusItem = (id: string | null) => {
     setFocusedItem(id);
     setGameState(prev => ({ ...prev, focusedItemId: id }));
+    // Track for tutorial
+    tutorial.trackEvidenceClick(id);
   };
 
   const handleStartCase = async (caseData: CaseFile) => {
+    // FIX: Hydrate missing Suspect Profiles so they appear on the board
+    caseData.suspects.forEach((suspect, index) => {
+      const exists = caseData.entities.some(e => e.id === `PROFILE-${suspect.id}` || e.label.includes(suspect.name));
+      if (!exists) {
+        console.log(`[Hydration] Generating missing profile card for: ${suspect.name}`);
+        caseData.entities.push({
+          id: `PROFILE-${suspect.id}`,
+          type: EvidenceType.PHOTO,
+          label: `${suspect.name}`,
+          description: `Profile card for ${suspect.name}. ${suspect.bio}`,
+          content: suspect.notes,
+          position: [(index * 0.2) - 0.5, 1.8, 0], // Row at top of board
+          rotation: [0, 0, 0],
+          clues: [suspect.bio],
+          imageUrl: suspect.photoUrl || undefined
+        });
+      }
+    });
+
     console.log('[Case Solution]', caseData.solution);
     const deductionState = createDeductionState(caseData);
 
@@ -100,6 +136,7 @@ function AppContent() {
 
     setDeductionState(deductionState);
     clearLinks();
+    clearAllInterrogations();
     setSolved(false);
     setGameState(prev => ({
       ...prev,
@@ -333,7 +370,15 @@ function AppContent() {
         <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-6">
 
           {/* Header - Minimal in-game */}
-          <div className="flex justify-between items-start pointer-events-auto"></div>
+          <div className="flex justify-between items-start pointer-events-auto">
+            <button
+              onClick={() => setShowGameHelp(true)}
+              className="text-slate-400 hover:text-blue-400 transition-colors p-2 hover:bg-slate-800/50 rounded-lg"
+              title="Investigation Guide"
+            >
+              <HelpCircle size={24} />
+            </button>
+          </div>
 
           {gameState.loading && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/95 z-50 pointer-events-auto cursor-wait">
@@ -410,6 +455,24 @@ function AppContent() {
           )}
 
         </div>
+      )}
+
+
+      {/* In-Game Tutorial */}
+      {gameState.currentCase && tutorial.isActive && (
+        <InGameTutorial
+          currentStep={tutorial.currentStep}
+          onStepComplete={tutorial.completeStep}
+          onSkipTutorial={tutorial.skipTutorial}
+          visible={tutorial.isActive}
+        />
+      )}
+      {/* Game Help Panel */}
+      {gameState.currentCase && (
+        <GameHelp
+          isOpen={showGameHelp}
+          onClose={() => setShowGameHelp(false)}
+        />
       )}
     </div>
   );

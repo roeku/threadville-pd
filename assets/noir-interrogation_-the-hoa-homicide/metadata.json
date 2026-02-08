@@ -1,0 +1,7 @@
+{
+  "name": "Noir Interrogation: The HOA Homicide",
+  "description": "An immersive detective roleplay game where you interrogate suspects in a high-stakes murder case using advanced AI personas.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

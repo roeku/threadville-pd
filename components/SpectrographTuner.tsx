@@ -31,18 +31,18 @@ const matchWaveforms = (waveform: number[], targetWaveform: number[], gain: numb
 
 const SpectrographTuner: React.FC<SpectrographTunerProps> = ({ sampleLabel, suspects, onMatch }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [selectedChemical, setSelectedChemical] = useState<string | null>(null);
-    const [gain, setGain] = useState(1); // 0.5 to 1.5
-    const [offset, setOffset] = useState(0); // -30 to 30
-    const [matchFound, setMatchFound] = useState(false);
-
-    const sampleWaveform = generateWaveform(sampleLabel);
     const chemicals = [
         { name: 'Arsenic Trioxide', label: 'Arsenic Residue' },
         { name: 'Strychnine', label: 'Strychnine Alkaloid' },
         { name: 'Cyanide Salt', label: 'Cyanide Residue' },
         { name: 'Vocal-Eze Formula', label: 'Unknown Compound' },
     ];
+    const [selectedChemical, setSelectedChemical] = useState<string | null>(chemicals[0].label); // Default to first
+    const [gain, setGain] = useState(1); // 0.5 to 1.5
+    const [offset, setOffset] = useState(0); // -30 to 30
+    const [matchFound, setMatchFound] = useState(false);
+
+    const sampleWaveform = generateWaveform(sampleLabel);
 
     const selectedChemicalObj = chemicals.find(c => c.label === selectedChemical);
     const tunerWaveform = selectedChemicalObj ? generateWaveform(selectedChemical) : [];
@@ -117,18 +117,21 @@ const SpectrographTuner: React.FC<SpectrographTunerProps> = ({ sampleLabel, susp
         }
     }, [selectedChemical, sampleWaveform, adjustedWaveform, matchFound]);
 
-    // Check for match
+    // Check for match - when waveforms are aligned
     useEffect(() => {
-        if (!matchFound && selectedChemical && Math.abs(gain - 1) < 0.1 && Math.abs(offset) < 3) {
-            // Check if chemical matches sample (simplified: exact label match)
-            if (selectedChemical.includes('Cyanide') && sampleLabel.includes('Cyanide')) {
-                setMatchFound(true);
-                // Find a suspect with matching chemical profile
-                const suspect = suspects[0]; // Simplified
-                onMatch(suspect);
+        if (!matchFound && selectedChemical && Math.abs(gain - 1) < 0.15 && Math.abs(offset) < 5) {
+            setMatchFound(true);
+            // Try to find suspect matching this chemical, otherwise use first
+            const chemicalName = selectedChemicalObj?.name || '';
+            const matchingSuspect = suspects.find(s =>
+                s.chemicalProfile?.includes(chemicalName) ||
+                s.name.includes(chemicalName)
+            ) || suspects[0];
+            if (matchingSuspect) {
+                onMatch(matchingSuspect);
             }
         }
-    }, [gain, offset, selectedChemical, matchFound, sampleLabel, suspects, onMatch]);
+    }, [gain, offset, selectedChemical, matchFound, suspects, onMatch, selectedChemicalObj]);
 
     return (
         <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-4">
@@ -165,8 +168,8 @@ const SpectrographTuner: React.FC<SpectrographTunerProps> = ({ sampleLabel, susp
                                         setMatchFound(false);
                                     }}
                                     className={`px-3 py-1 text-xs font-mono text-left ${selectedChemical === chem.label
-                                            ? 'bg-green-700 text-black'
-                                            : 'bg-green-900/40 text-green-400 hover:bg-green-800/40'
+                                        ? 'bg-green-700 text-black'
+                                        : 'bg-green-900/40 text-green-400 hover:bg-green-800/40'
                                         }`}
                                 >
                                     {chem.name}

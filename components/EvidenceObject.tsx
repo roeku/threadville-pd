@@ -174,16 +174,33 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
   useCursor(hovered && !isDragging, 'pointer', 'auto');
   useCursor(isDragging, 'grabbing', 'auto');
 
-  // Generate a consistent random image for photos if not provided or vague
+  // Use item's imageUrl if provided, otherwise generate a consistent random image for photos
   const imageUrl = useMemo(() => {
+    if (item.imageUrl) {
+      return item.imageUrl;
+    }
     if (item.type === EvidenceType.PHOTO) {
       const seed = item.id;
       return `https://picsum.photos/seed/${seed}/200/200`;
     }
     return undefined;
-  }, [item.type, item.id]);
+  }, [item.type, item.id, item.imageUrl]);
 
   const [zoomOffset, setZoomOffset] = useState(0);
+
+  const photoAlibi = useMemo(() => {
+    if (item.type !== EvidenceType.PHOTO) return null;
+    const isProfile = item.id?.startsWith('PROFILE-') || item.description?.toLowerCase().includes('profile card');
+    if (!isProfile) return null;
+
+    const sourceText = item.description || item.content || '';
+    const alibiIndex = sourceText.toLowerCase().indexOf('alibi:');
+    if (alibiIndex === -1) return 'ALIBI: Not provided.';
+
+    const raw = sourceText.slice(alibiIndex + 6).trim();
+    if (!raw) return 'ALIBI: Not provided.';
+    return `ALIBI: ${raw}`;
+  }, [item.type, item.id, item.description, item.content]);
 
   useFrame((state, delta) => {
     if (!rigidBody.current) return;
@@ -470,10 +487,16 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
   // const paperWidth = 0.21; // Now dynamic
   // const paperHeight = 0.29; // Now dynamic
 
-  const isNewSystem = useMemo(() => {
-    const templateId = item.metadata?.type || item.metadata?.templateId;
-    return item.type === EvidenceType.PAPER && !!templateId;
-  }, [item.metadata?.templateId, item.metadata?.type, item.type]);
+  const templateId = useMemo(
+    () => getTemplateForEvidence(item),
+    [item.metadata?.templateId, item.metadata?.type, item.label, item.content, item.type]
+  );
+
+  const shouldRenderDocument = useMemo(() => {
+    if (item.type === EvidenceType.PHOTO) return false;
+    if (item.type === EvidenceType.FORENSIC_SAMPLE) return false;
+    return item.type === EvidenceType.PAPER || item.type === EvidenceType.OBJECT;
+  }, [item.type]);
 
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
 
@@ -516,10 +539,9 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
 
   const [paperWidth, paperHeight] = useMemo(() => {
     // Default A4 vertical: 0.21 x 0.29
-    const tid = getTemplateForEvidence(item);
-    if (!tid) return [0.21, 0.29];
+    if (!templateId) return [0.21, 0.29];
 
-    switch (tid) {
+    switch (templateId) {
       case 'rail-timetable': return [0.10, 0.20]; // Ticket size
       case 'boarding-pass': return [0.20, 0.10]; // Wide ticket
       case 'news-clipping': return [0.15, 0.25]; // Scrap
@@ -528,7 +550,7 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
       case 'email-printout': return [0.21, 0.29];
       default: return [0.21, 0.29];
     }
-  }, [item.metadata?.templateId, item.metadata?.type, item.label, item.content]);
+  }, [templateId]);
 
   // Safe desk position to place documents
   const DESK_X_CENTER = 0;
@@ -609,7 +631,7 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
     // Capture the current textures to dispose in cleanup - spread to new array
     const texturesToDispose = [...generatedMaps];
 
-    if (isNewSystem) {
+    if (shouldRenderDocument && templateId) {
       // Use fields if available, otherwise fallback to top-level metadata
       // INJECT CONTENT: Ensure abstract 'content' and 'label' are available to restrictions
       const data = {
@@ -617,16 +639,16 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
         // Inject fallback data for unstructured AI responses
         content: item.content,
         label: item.label,
-        description: item.description
+        description: item.description,
+        evidenceId: item.id,
+        itemType: item.type,
+        imageUrl: item.imageUrl
       };
-
-      // PRIORITY FIX: Resolve Template ID robustly
-      const tid = getTemplateForEvidence(item);
 
       // Track that this evidence is starting texture load
       incrementTextureLoading();
 
-      renderDocumentToTexture(tid, data).then((urls) => {
+      renderDocumentToTexture(templateId, data).then((urls) => {
         // urls is string[]
         Promise.all(urls.map((url) => {
           return new Promise<THREE.Texture>((resolve) => {
@@ -657,7 +679,7 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
         texture.dispose();
       });
     };
-  }, [isNewSystem, item.metadata, item.id]);
+  }, [shouldRenderDocument, templateId, item.metadata, item.id]);
 
   // Physics cleanup for focus mode
   // When entering focus, we SNAP to kinematic. When leaving, SNAP to dynamic.
@@ -735,7 +757,7 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {item.type === EvidenceType.PAPER && (
+        {shouldRenderDocument && (
           <group>
             {/* Base Paper Block (Physical Body) */}
             <mesh castShadow receiveShadow frustumCulled>
@@ -813,6 +835,22 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
             >
               {item.label}
             </Text>
+
+            {/* Back-side Alibi (profile cards) */}
+            {photoAlibi && (
+              <Text
+                position={[0, -0.0011, 0]}
+                rotation={[Math.PI / 2, 0, 0]}
+                fontSize={0.008}
+                color="#1a1a1a"
+                maxWidth={0.12}
+                lineHeight={1.2}
+                anchorX="center"
+                anchorY="middle"
+              >
+                {photoAlibi}
+              </Text>
+            )}
 
             {isPinned && <group position={[0, .012, -0.07]} scale={.3}>
               <DeductionPin

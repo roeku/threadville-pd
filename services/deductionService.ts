@@ -35,13 +35,15 @@ export function generateDeductionRules(caseFile: CaseFile): SolutionRule[] {
     )
   );
 
-  // Build chain: Weapon -> Printed Forensic Report -> Culprit Profile
-  // Reports are generated from forensic samples in the Forensic OS
+  // Build chain:
+  // - Forensic evidence on weapon: Weapon -> Report -> Culprit Profile
+  // - Forensic evidence from scene: Report -> Culprit Profile
 
+  // FIXED: Fallback to suspect object if no explicit profile entity exists
   const culpritProfile = caseFile.entities.find(e => 
     e.id === `PROFILE-${culprit.id}` || 
     (e.label?.includes(culprit.name) && e.type === EvidenceType.PHOTO)
-  );
+  ) || { id: culprit.id, label: culprit.name, type: 'SUSPECT' };
 
   culpritForensics.forEach(forensic => {
     const reportId = forensic.metadata?.reportId ||
@@ -49,22 +51,40 @@ export function generateDeductionRules(caseFile: CaseFile): SolutionRule[] {
     const reportLabel = forensic.metadata?.reportLabel ||
       (forensic.forensicData?.type === 'FINGERPRINT' ? `Fingerprint Match Report: ${forensic.id}` : `DNA Match Report: ${forensic.id}`);
 
-    // Weapon -> Printed Forensic Report (only if not self-loop)
-    if (weapon.id !== reportId) {
+    // Only create weapon -> report link if evidence is explicitly tied to the weapon
+    const weaponLabel = weapon.label?.toLowerCase() || '';
+    const forensicIsOnWeapon =
+      forensic.clues?.some(c => {
+        const clue = c.toLowerCase();
+        return clue.includes('weapon') || clue.includes('handle') || clue.includes('grip') || (weaponLabel && clue.includes(weaponLabel));
+      }) ||
+      forensic.metadata?.relatedTo === weapon.id ||
+      (typeof forensic.metadata?.location === 'string' && (
+        forensic.metadata.location.toLowerCase().includes('weapon') ||
+        (weaponLabel && forensic.metadata.location.toLowerCase().includes(weaponLabel))
+      )) ||
+      (typeof forensic.description === 'string' && (
+        forensic.description.toLowerCase().includes('weapon') ||
+        (weaponLabel && forensic.description.toLowerCase().includes(weaponLabel))
+      )) ||
+      forensic.label?.toLowerCase().includes('fingerprint on weapon') ||
+      forensic.label?.toLowerCase().includes('blood on weapon');
+
+    if (forensicIsOnWeapon && weapon.id !== reportId) {
       rules.push({
         id: `rule_${rules.length + 1}`,
         source: weapon.id,
         target: reportId,
         type: LinkType.MATCHES,
-        description: `Forensic analysis report identifies weapon handler`,
+        description: `Forensic evidence on weapon identifies the handler`,
         weight: 1.0,
-        reasoning: `${reportLabel} (generated from analyzing forensic sample) proves who handled ${weapon.label}`,
+        reasoning: `${reportLabel} (found on ${weapon.label}) proves who used the weapon`,
       });
       criticalRuleIds.push(`rule_${rules.length}`);
       console.log(`[Rule] Weapon -> Report: ${weapon.label} (${weapon.id}) -> ${reportLabel} (${reportId})`);
     }
 
-    // Printed Forensic Report -> Culprit Profile
+    // Printed Forensic Report -> Culprit Profile (always required)
     if (culpritProfile) {
       rules.push({
         id: `rule_${rules.length + 1}`,
@@ -76,11 +96,12 @@ export function generateDeductionRules(caseFile: CaseFile): SolutionRule[] {
         reasoning: `Forensic analysis proves this evidence belongs to ${culprit.name}`,
       });
       criticalRuleIds.push(`rule_${rules.length}`);
-      console.log(`[Rule] Report -> Profile: ${reportLabel} (${reportId}) -> ${culpritProfile.label} (${culpritProfile.id})`);
+      // @ts-ignore
+      console.log(`[Rule] Report -> Profile: ${reportLabel} (${reportId}) -> ${culpritProfile.label || culpritProfile.name} (${culpritProfile.id})`);
     }
   });
 
-  // Rule 3: Culprit Profile -> Motive (supporting evidence)
+  // Rule 3: Culprit Profile <-> Motive (supporting evidence, bidirectional)
   const motiveEvidence = caseFile.entities.find(e =>
     e.label?.toLowerCase().includes('diary') ||
     e.label?.toLowerCase().includes('letter') ||
@@ -90,6 +111,7 @@ export function generateDeductionRules(caseFile: CaseFile): SolutionRule[] {
   );
 
   if (motiveEvidence && culpritProfile) {
+    // Direction 1: Culprit Profile -> Motive Evidence
     rules.push({
       id: `rule_${rules.length + 1}`,
       source: culpritProfile.id,
@@ -99,6 +121,17 @@ export function generateDeductionRules(caseFile: CaseFile): SolutionRule[] {
       weight: 0.8, // Supporting, not critical
       reasoning: `${motiveEvidence.label} reveals ${culprit.name}'s motive for the crime`,
     });
+    
+    // Direction 2: Motive Evidence -> Culprit Profile (more intuitive for players)
+    rules.push({
+      id: `rule_${rules.length + 1}`,
+      source: motiveEvidence.id,
+      target: culpritProfile.id,
+      type: LinkType.MOTIVATES,
+      description: `Evidence reveals the suspect's motive`,
+      weight: 0.8, // Supporting, not critical
+      reasoning: `${motiveEvidence.label} provides motive for ${culprit.name}'s actions`,
+    });
   }
 
   // ========== RED HERRINGS ==========
@@ -107,12 +140,11 @@ export function generateDeductionRules(caseFile: CaseFile): SolutionRule[] {
   
   innocents.forEach(innocent => {
     // Find suspect profile for innocent
+    // FIXED: Fallback to suspect object
     const innocentProfile = caseFile.entities.find(e => 
       e.id === `PROFILE-${innocent.id}` || 
       (e.label?.includes(innocent.name) && e.type === EvidenceType.PHOTO)
-    );
-
-    if (!innocentProfile) return; // Skip if no profile
+    ) || { id: innocent.id, label: innocent.name, type: 'SUSPECT' };
 
     // Find evidence that misleads about this suspect
     const innocentForensics = caseFile.entities.filter(e =>

@@ -79,12 +79,13 @@ export const FingerprintScanner: React.FC<FingerprintScannerProps> = ({ data }) 
             reportData,
             reportId
         );
+
+        // Track puzzle completion and document print
+        if (sessionId) {
+            trackPuzzleInteraction(sessionId, 'FINGERPRINT_SCANNER', evidence.id, evidence.label, isSuccess);
+            trackDocumentPrint(sessionId, reportId, reportLabel, 'FORENSIC_REPORT');
+        }
     };
-    // Track puzzle completion and document print
-    if (sessionId) {
-        trackPuzzleInteraction(sessionId, 'FINGERPRINT_SCANNER', evidence.id, evidence.label, isSuccess);
-        trackDocumentPrint(sessionId, reportId, reportLabel, 'FORENSIC_REPORT');
-    }
 
     // Reset overlay when suspect changes
     useEffect(() => {

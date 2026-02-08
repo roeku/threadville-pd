@@ -14,7 +14,7 @@ interface ForensicDesktopProps {
 }
 
 const OSIntegration: React.FC<{ startApp?: string }> = ({ startApp }) => {
-    const { focusedItemId } = useGameStore();
+    const { focusedItemId, pendingOsApp, setPendingOsApp } = useGameStore();
     const { openApp, currentCase } = useOS();
 
     // Open specified app on mount if provided
@@ -23,6 +23,13 @@ const OSIntegration: React.FC<{ startApp?: string }> = ({ startApp }) => {
             openApp(startApp as any);
         }
     }, [startApp, openApp]);
+
+    // Open app requested by in-world triggers (e.g. phone)
+    useEffect(() => {
+        if (!pendingOsApp) return;
+        openApp(pendingOsApp as any);
+        setPendingOsApp(null);
+    }, [pendingOsApp, openApp, setPendingOsApp]);
 
     useEffect(() => {
         if (!focusedItemId || !currentCase) return;
@@ -46,9 +53,15 @@ const OSIntegration: React.FC<{ startApp?: string }> = ({ startApp }) => {
             openApp('image_viewer', { entityId: focusedItemId });
         } else if (entity?.type === 'paper' || entity?.type === 'PAPER') {
             openApp('document_viewer', { entityId: focusedItemId });
-        } else if ((entity?.type === 'object' || entity?.type === 'OBJECT') && entity.forensicData?.type === 'AUDIO') {
-            // If it's an object acting as audio source (e.g. tape recorder)
-            openApp('spectrograph', { entityId: focusedItemId });
+        } else if (entity?.type === 'object' || entity?.type === 'OBJECT') {
+            if (entity.forensicData?.type === 'AUDIO') {
+                // If it's an object acting as audio source (e.g. tape recorder)
+                openApp('spectrograph', { entityId: focusedItemId });
+            } else if (entity.imageUrl) {
+                openApp('image_viewer', { entityId: focusedItemId });
+            } else {
+                openApp('document_viewer', { entityId: focusedItemId });
+            }
         }
     }, [focusedItemId, currentCase, openApp]);
 

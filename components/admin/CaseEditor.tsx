@@ -70,35 +70,6 @@ export default function CaseEditor({ mode, caseId, onSave }: CaseEditorProps) {
         setLoading(false);
     };
 
-    const uploadBase64Asset = async (base64: string, path: string): Promise<string | null> => {
-        try {
-            const res = await fetch(base64);
-            const blob = await res.blob();
-            // Simple mime extraction
-            const mimeType = base64.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1] || 'image/png';
-            const ext = mimeType.split('/')[1] || 'png';
-            const fullPath = `${path}.${ext}`;
-
-            const { error } = await supabase.storage
-                .from('case-assets')
-                .upload(fullPath, blob, { upsert: true });
-
-            if (error) {
-                console.error("Upload failed", error);
-                return null;
-            }
-
-            const { data } = supabase.storage
-                .from('case-assets')
-                .getPublicUrl(fullPath);
-
-            return data.publicUrl;
-        } catch (e) {
-            console.error("Asset processing failed", e);
-            return null;
-        }
-    };
-
     const handleStep1_Narrative = async () => {
         setGenerating(true);
         setError(null);
@@ -267,11 +238,11 @@ export default function CaseEditor({ mode, caseId, onSave }: CaseEditorProps) {
             };
 
             const validation = runCaseValidation(finalCase);
-            
+
             // Allow loading even if invalid, but show error
             if (!validation.isValid) {
                 console.error("Case validation failed", validation.message);
-                setError(`Case generated with issues: ${validation.message}`); 
+                setError(`Case generated with issues: ${validation.message}`);
                 // Don't return, allow user to save/fix manually
             }
 
@@ -291,36 +262,9 @@ export default function CaseEditor({ mode, caseId, onSave }: CaseEditorProps) {
         setError(null);
         try {
             const result = await generateCase();
-
-            // Post-processing: Upload all generated base64 images to Supabase to prevent JSON bloat
-            // 1. Upload Evidence Images
-            const updatedEntities = await Promise.all(result.entities.map(async (entity) => {
-                if (entity.imageUrl && entity.imageUrl.startsWith('data:image')) {
-                    const path = `${result.caseId || 'gen'}/evidence/${entity.id}_${Date.now()}`;
-                    const url = await uploadBase64Asset(entity.imageUrl, path);
-                    if (url) return { ...entity, imageUrl: url };
-                }
-                return entity;
-            }));
-
-            // 2. Upload Suspect Photos
-            const updatedSuspects = await Promise.all(result.suspects.map(async (suspect) => {
-                if (suspect.photoUrl && suspect.photoUrl.startsWith('data:image')) {
-                    const path = `${result.caseId || 'gen'}/suspects/${suspect.id}_${Date.now()}`;
-                    const url = await uploadBase64Asset(suspect.photoUrl, path);
-                    if (url) return { ...suspect, photoUrl: url };
-                }
-                return suspect;
-            }));
-
-            const finalCase = {
-                ...result,
-                entities: updatedEntities,
-                suspects: updatedSuspects
-            };
-
-            setCaseData(finalCase);
-            setTitle(finalCase.title);
+            // Images are uploaded in generateAssetImage and returned as URLs
+            setCaseData(result);
+            setTitle(result.title);
         } catch (err: any) {
             console.error(err);
             setError(err.message || "Failed to generate case");
@@ -366,32 +310,13 @@ export default function CaseEditor({ mode, caseId, onSave }: CaseEditorProps) {
 
         try {
             const prompt = constructEvidencePrompt(evidence);
-            const base64 = await generateAssetImage(prompt);
-
-            // Upload to Supabase Storage
-            const res = await fetch(base64);
-            const blob = await res.blob();
-            // Extract extension
-            const mimeType = base64.substring(base64.indexOf(':') + 1, base64.indexOf(';')) || 'image/png';
-            const ext = mimeType.split('/')[1] || 'png';
-
-            const fileName = `${caseData.caseId || 'draft'}/${evidence.id}_${Date.now()}.${ext}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('case-assets')
-                .upload(fileName, blob, { upsert: true });
-
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('case-assets')
-                .getPublicUrl(fileName);
+            const imageUrl = await generateAssetImage(prompt);
 
             // Update the case data
             const newEntities = [...caseData.entities];
             newEntities[index] = {
                 ...evidence,
-                imageUrl: publicUrl
+                imageUrl: imageUrl
             };
 
             setCaseData({
@@ -553,6 +478,7 @@ export default function CaseEditor({ mode, caseId, onSave }: CaseEditorProps) {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                         {narrative.suspects.map(s => (
                                             <div key={s.id} className={`p-2 rounded border ${s.isCulprit ? 'border-amber-900/50 bg-amber-900/10' : 'border-slate-800 bg-slate-800/50'}`}>
+                                                <img src={s.photoUrl || '/placeholder-mugshot.png'} alt={s.name} className="w-full h-32 object-cover rounded mb-2" />
                                                 <div className="font-bold text-slate-300 flex justify-between">
                                                     {s.name}
                                                     {s.isCulprit && <span className="text-red-500 text-[10px] uppercase">Culprit</span>}

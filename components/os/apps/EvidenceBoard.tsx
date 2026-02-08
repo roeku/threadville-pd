@@ -16,13 +16,14 @@ export const EvidenceBoard: React.FC = () => {
         return <FileText className="text-slate-400" />;
     };
 
-    const getAppForType = (type: string, forensicType?: string) => {
+    const getAppForType = (type: string, forensicType?: string, hasImage?: boolean) => {
         const t = (type || "").toUpperCase();
         if (forensicType === 'DNA') return 'dna';
         if (forensicType === 'FINGERPRINT') return 'fingerprint';
         if (t === 'AUDIO' || forensicType === 'AUDIO') return 'spectrograph';
         if (t === 'PHOTO') return 'image_viewer';
         if (t === 'PAPER') return 'document_viewer';
+        if (t === 'OBJECT') return hasImage ? 'image_viewer' : 'document_viewer';
         // Check for encrypted files potentially?
         if (t === 'OBJECT' && type.includes('encrypted')) return 'decryptor';
         return null;
@@ -32,7 +33,7 @@ export const EvidenceBoard: React.FC = () => {
         entity,
         name: entity.label,
         icon: getIconForType(entity.type, entity.forensicData?.type),
-        app: getAppForType(entity.type, entity.forensicData?.type)
+        app: getAppForType(entity.type, entity.forensicData?.type, Boolean(entity.imageUrl))
     }));
 
     // Add some dummy files if empty for testing

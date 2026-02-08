@@ -70,8 +70,8 @@ export const EvidenceCatalog: React.FC<EvidenceCatalogProps> = ({ data }) => {
                                     key={item.id}
                                     onClick={() => setFocusedId(item.id)}
                                     className={`aspect-square flex flex-col items-center justify-center p-2 rounded border-2 transition-all cursor-pointer group ${focusedId === item.id
-                                            ? 'bg-blue-900/40 border-blue-500 shadow-lg shadow-blue-500/20'
-                                            : 'bg-slate-800/50 border-slate-700 hover:border-slate-600 hover:bg-slate-800/70'
+                                        ? 'bg-blue-900/40 border-blue-500 shadow-lg shadow-blue-500/20'
+                                        : 'bg-slate-800/50 border-slate-700 hover:border-slate-600 hover:bg-slate-800/70'
                                         }`}
                                 >
                                     {/* Image Thumbnail */}
@@ -132,43 +132,13 @@ export const EvidenceCatalog: React.FC<EvidenceCatalogProps> = ({ data }) => {
                             </div>
                         )}
 
-                        {/* Clues */}
-                        {focusedItem.clues && focusedItem.clues.length > 0 && (
-                            <div className="border-t border-slate-700 pt-2">
-                                <p className="text-xs font-semibold text-slate-300 mb-2">Key Clues</p>
-                                <ul className="space-y-1">
-                                    {focusedItem.clues.map((clue, i) => (
-                                        <li key={i} className="text-xs text-amber-300 flex gap-1">
-                                            <span>💡</span>
-                                            <span className="flex-1">{clue}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-
-                        {/* Forensic Data */}
-                        {focusedItem.forensicData && (
-                            <div className="border-t border-slate-700 pt-2">
-                                <p className="text-xs font-semibold text-slate-300 mb-2">Forensic Data</p>
-                                <div className="text-xs text-slate-400 space-y-1 font-mono">
-                                    <div>Type: {focusedItem.forensicData.type}</div>
-                                    {focusedItem.forensicData.confidence && (
-                                        <div>Confidence: {(focusedItem.forensicData.confidence * 100).toFixed(0)}%</div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Content Preview */}
-                        {focusedItem.content && (
-                            <div className="border-t border-slate-700 pt-2">
-                                <p className="text-xs font-semibold text-slate-300 mb-2">Content</p>
-                                <p className="text-xs text-slate-400 leading-tight line-clamp-4">
-                                    {focusedItem.content}
-                                </p>
-                            </div>
-                        )}
+                        {/* Restricted Details */}
+                        <div className="border-t border-slate-700 pt-2">
+                            <p className="text-xs font-semibold text-slate-300 mb-2">Additional Details</p>
+                            <p className="text-xs text-slate-500 leading-tight">
+                                Access restricted. View the evidence document for full analysis.
+                            </p>
+                        </div>
                     </div>
                 )}
             </div>

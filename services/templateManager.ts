@@ -9,6 +9,11 @@ export const getTemplateForEvidence = (item: EvidenceItem): string => {
         return item.metadata.templateId;
     }
 
+    // 1b. Physical objects default to evidence-document
+    if (item.type === 'OBJECT') {
+        return 'evidence-document';
+    }
+
     // 2. Infer from Label/Content keywords
     const label = (item.label || "").toLowerCase();
     const content = (item.content || "").toLowerCase();

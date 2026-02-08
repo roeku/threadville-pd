@@ -74,6 +74,7 @@ export interface SuspectSkeleton {
   motive: string;
   alibi: string;
   isCulprit: boolean;
+  photoUrl?: string;
   // Forensic fields (added during wizard step 1 hydration)
   bloodType?: string;
   dnaSequence?: string;
