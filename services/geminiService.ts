@@ -180,13 +180,13 @@ export const constructPrompt = (entity: CaseEntity, visualTags?: string): string
   
   switch (entityType) {
     case EntityType.SUSPECT:
-      return `${UE5_STYLE_PREFIX} a police booking photo of ${label}. 
+      return `${UE5_STYLE_PREFIX} a portrait photograph of ${label}. 
       ${description}. ${specificDetails} 
-      The subject looks tired, stressed, or defiant. 
-      Lighting is harsh overhead fluorescent or dramatic interrogation lamp.
-      Skin texture is hyper-realistic with pores and imperfections.
+      Professional headshot style, neutral expression, realistic skin texture.
+      Studio lighting with soft shadows, clean background.
+      The subject should NOT be holding anything, no text, no placards, no boards, no signs.
       ${UE5_STYLE_SUFFIX} 
-      --no ${NEGATIVE_PROMPTS}`;
+      --no ${NEGATIVE_PROMPTS}, mugshot, arrest photo, holding placard, holding board, holding sign, criminal photo, police photo`;  
 
     case EntityType.PHOTO:
       // Crime Scene - First Person View
@@ -200,7 +200,6 @@ export const constructPrompt = (entity: CaseEntity, visualTags?: string): string
       --no ${NEGATIVE_PROMPTS}`;
 
     case EntityType.OBJECT:
-    case EntityType.FORENSIC_SAMPLE:
       // Inspection View
       return `${UE5_STYLE_PREFIX} an isolated asset render of ${label}.
       ${description}. ${specificDetails} 
@@ -210,12 +209,13 @@ export const constructPrompt = (entity: CaseEntity, visualTags?: string): string
       ${UE5_STYLE_SUFFIX} 
       --no ${NEGATIVE_PROMPTS}`;
 
+    case EntityType.FORENSIC_SAMPLE:
+      // Forensic samples don't need images - they're visualized through the game UI
+      return "";
+
     case EntityType.AUDIO:
-      return `${UE5_STYLE_PREFIX} a voice recorder, cassette tape, or USB drive labeled '${label}'.
-      ${description}. ${specificDetails}
-      The object is on an evidence desk.
-      ${UE5_STYLE_SUFFIX}
-      --no ${NEGATIVE_PROMPTS}`;
+      // Audio evidence doesn't need images - represented by audio player in UI
+      return "";
 
     case EntityType.PAPER:
     default:
@@ -657,6 +657,110 @@ const generateDynamicData = async (templateId: string, layoutSchema: any, caseCo
   }
 };
 
+// Schema for generating deduction rules from a case
+const deductionRulesSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    rules: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          id: { type: Type.STRING },
+          source: { type: Type.STRING, description: "Entity ID or Suspect ID (from)" },
+          target: { type: Type.STRING, description: "Entity ID or Suspect ID (to)" },
+          type: { type: Type.STRING, enum: ["MATCHES", "CONTRADICTS", "MOTIVATES", "LOCATES", "UNKNOWN"] },
+          description: { type: Type.STRING },
+          weight: { type: Type.NUMBER, description: "1=critical, 0.5=supporting" },
+          reasoning: { type: Type.STRING },
+          isRedHerring: { type: Type.BOOLEAN, nullable: true }
+        },
+        required: ["id", "source", "target", "type", "description", "weight", "reasoning"]
+      }
+    }
+  },
+  required: ["rules"]
+};
+
+// Generate deduction rules for a case using Gemini
+export const generateDeductionRules = async (caseFile: CaseFile): Promise<any[]> => {
+  const ai = getAI();
+  const modelName = "gemini-3-pro-preview";
+
+  const prompt = `
+You are a Logic Puzzle Designer for a detective game. Given a case, generate the LOGICAL DEDUCTION RULES that players must discover.
+
+CASE SUMMARY:
+Title: ${caseFile.title}
+Briefing: ${caseFile.briefing}
+Culprit ID: ${caseFile.solution.culpritId}
+Weapon ID: ${caseFile.solution.weaponId}
+Solution Reasoning: ${caseFile.solution.reasoning}
+Motive: ${caseFile.solution.motive}
+
+SUSPECTS (with Forensic Profiles):
+${caseFile.suspects.map(s => `- ${s.id}: ${s.name} (Bio: ${s.bio})`).join('\n')}
+
+EVIDENCE ENTITIES:
+${caseFile.entities.map(e => `- ${e.id}: [${e.type}] ${e.label}
+  Description: ${e.description}
+  Clues: ${e.clues?.join('; ') || 'None'}
+  Forensic Data: ${e.forensicData ? `${e.forensicData.type}=${e.forensicData.value}` : 'None'}`).join('\n')}
+
+INSTRUCTIONS:
+1. Generate CRITICAL RULES (weight=1.0): These form the core logic chain to prove culpability
+   - Start with the weapon and forensic evidence on/from it
+   - Link forensics to suspect profiles via matching data
+   - Connect to culprit through evidence chain
+   - Link motive documents (emails, letters, financial records) to culprit
+
+2. Generate SUPPORTING RULES (weight=0.8): Context and additional proof
+   - Circumstantial evidence
+   - Timeline connections
+   - Alibi contradictions
+
+3. Generate RED HERRINGS (weight=0.5, isRedHerring=true): False leads for other suspects
+   - Forensic evidence from innocent suspects
+   - Statements that seem suspicious but have explanations
+   - Contradictions that distract from the true solution
+
+CRITICAL CONSTRAINTS:
+- ONLY use entity IDs and suspect IDs that ACTUALLY EXIST in the case
+- NEVER invent synthetic IDs like "DOC-FP-EVID-007" or "PROFILE-S2"
+- Source and target must both be real IDs from the case
+- For suspect profiles, use the suspect's own ID (e.g., "S2" for Victor Vane)
+- Ensure the critical path forms a logical chain to prove the culprit
+
+EXAMPLE STRUCTURE (NOT to be used directly):
+- CRITICAL: Weapon -> Fingerprints -> [Suspect DNA matches fingerprints]
+- CRITICAL: [Fingerprints] -> [Culprit Suspect ID] via forensic match
+- SUPPORTING: [Financial Document] -> [Culprit Suspect ID] via motive
+- RED HERRING: [Other Evidence] -> [Innocent Suspect ID] via red herring
+
+Return ONLY valid JSON matching the provided schema.
+`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        responseMimeType: "application/json",
+        responseJsonSchema: deductionRulesSchema
+      }
+    });
+
+    const text = getResponseText(response);
+    const rawData = JSON.parse(text);
+    
+    console.log(`[Gemini] Generated ${rawData.rules.length} deduction rules for case ${caseFile.caseId}`);
+    return rawData.rules;
+  } catch (e) {
+    console.error("Failed to generate deduction rules", e);
+    return [];
+  }
+};
+
 export const generateCase = async (): Promise<CaseFile> => {
   // 1. Generate the Blueprint
   let fullCase: CaseFile;
@@ -792,16 +896,18 @@ export const generateCase = async (): Promise<CaseFile> => {
       }
       
       // C. If it's a visual asset, generate the Image URL
-      // Suspects are in a different array, so we handle entities here (PHOTO, OBJECT)
+      // Only generate images for PHOTO and OBJECT types
+      // PAPER uses document templates, FORENSIC_SAMPLE uses UI visualization, AUDIO uses audio player
       if (entity.type === EntityType.PHOTO || entity.type === EntityType.OBJECT) {
-          // Use 'description' as the base, and maybe expand with visual details if available
-          // Note: Our schema mapping put 'description' in entity.description
-          const prompt = constructPrompt(entity as any, entity.description); 
-          try {
-            const b64Image = await generateAssetImage(prompt);
-            entity.imageUrl = b64Image;
-          } catch (err) {
-              console.warn(`Failed to generate image for ${entity.id}`, err);
+          const prompt = constructPrompt(entity as any, entity.description);
+          // Skip if prompt is empty (e.g., for types that don't need images)
+          if (prompt && prompt.trim() !== "") {
+            try {
+              const b64Image = await generateAssetImage(prompt);
+              entity.imageUrl = b64Image;
+            } catch (err) {
+                console.warn(`Failed to generate image for ${entity.id}`, err);
+            }
           }
       }
   }));
@@ -848,6 +954,15 @@ export const generateCase = async (): Promise<CaseFile> => {
   if (validation.warnings.length > 0) {
     console.warn("⚠️  Generated case warnings:");
     validation.warnings.forEach(w => console.warn(`   - ${w}`));
+  }
+
+  // 4. Generate Deduction Rules (pre-computed, not dynamic)
+  try {
+    console.log("[Gemini] Generating deduction rules...");
+    fullCase.deductionRules = await generateDeductionRules(fullCase);
+  } catch (e) {
+    console.warn("Failed to generate deduction rules, case will use fallback logic", e);
+    fullCase.deductionRules = [];
   }
 
   return fullCase;
@@ -1117,14 +1232,14 @@ const uploadImageToSupabase = async (base64Image: string, filename: string): Pro
 // IMAGE GENERATION - Used by both main app and sub-apps
 // =============================================================================
 
-// Restored the Unreal Engine 5 Game Art style as requested, but added "forensic aesthetic"
-export const STYLE_SUFFIX = "Rendered in Unreal Engine 5, high fidelity 3D game art, cinematic lighting, volumetric fog, detailed textures, realistic atmosphere, clinical lighting, forensic aesthetic.";
+// Professional character portrait style for game assets
+export const STYLE_SUFFIX = "Professional character portrait, neutral background, natural soft lighting, photorealistic 3D game art, high fidelity details, realistic skin and features, character-focused framing, modern game engine render quality.";
 
 // Aggressive Negative Prompts to ensure NO UI appears in the game art
-export const NEGATIVE_PROMPT_COMMON = "UI, HUD, interface, text, watermark, health bar, minimap, crosshair, icons, menu, subtitles, game overlay, button prompt, cartoon, low poly, drawing, anime, sketch, painting, 2D, a placard, board";
+export const NEGATIVE_PROMPT_COMMON = "UI, HUD, interface, text, watermark, health bar, minimap, crosshair, icons, menu, subtitles, game overlay, button prompt, cartoon, low poly, drawing, anime, sketch, painting, 2D, placard, board, sign, holding something";
 
 export const NEGATIVE_PROMPT_SCENE = `--no ${NEGATIVE_PROMPT_COMMON}, bright daylight, flat lighting, blur`;
-export const NEGATIVE_PROMPT_CHARACTER = `--no ${NEGATIVE_PROMPT_COMMON}, smiling, posing, perfect skin, makeup, symmetrical face, fashion model`;
+export const NEGATIVE_PROMPT_CHARACTER = `--no ${NEGATIVE_PROMPT_COMMON}, mugshot, arrest photo, police photo, booking photo, jail, prison, holding placard, holding board, holding sign, holding paper, identity card, prisoner, convict, symmetrical face, fashion model, extreme makeup, oversaturated, blurry background, cluttered environment`;
 export const NEGATIVE_PROMPT_OBJECT = `--no ${NEGATIVE_PROMPT_COMMON}, floating object, white background, vector art`;
 
 export const generateAssetImage = async (prompt: string): Promise<string> => {

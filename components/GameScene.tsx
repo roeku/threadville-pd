@@ -688,6 +688,8 @@ const SceneLogic = ({
     <CameraControls
       ref={cameraControlsRef}
       makeDefault
+      lookAtTarget={targetLookAt.current}
+      position={[debugParams.cameraPos.x, debugParams.cameraPos.y + debugParams.sceneLiftY, debugParams.cameraPos.z]}
       smoothTime={0.25}
       draggingSmoothTime={0.25}
       minPolarAngle={Math.PI / 6}     // Allow looking up more
@@ -840,7 +842,7 @@ const GameScene: React.FC<GameSceneProps> = ({
   );
 
   return (
-    <div className="w-full h-screen bg-black">
+    <div className="w-full h-screen bg-black relative">
       {/* <Leva hidden /> */}
 
       <CanvasWrapper canvasProps={{
@@ -985,14 +987,18 @@ const GameScene: React.FC<GameSceneProps> = ({
 
 
                 {/* Spawn Evidence relative to Desk parent group */}
-                {evidence.map((item) => {
+                {evidence.map((item, index) => {
                   // Debug log for individual item render
                   // console.log(`[GameScene] Rendering Item: ${item.id}, Type: ${item.type}`);
+                  // Key includes position to force remount when position changes (e.g. new case layout)
+                  // This ensures RigidBody re-initializes at the correct coordinates
+                  const posKey = item.position ? item.position.map(n => n.toFixed(3)).join(',') : 'nopos';
                   return (
                     <EvidenceObject
-                      key={item.id}
+                      key={`${item.id}-${posKey}`}
                       ref={(el) => { itemRefs.current[item.id] = el; }}
                       item={item}
+                      evidenceIndex={index}
                       isFocused={focusedItemId === item.id}
                       onFocus={setFocusedItemId}
                       onUnfocus={handleUnfocus}

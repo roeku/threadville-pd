@@ -10,8 +10,8 @@ interface TutorialSlide {
 
 const TUTORIAL_SLIDES: TutorialSlide[] = [
   {
-    title: "Welcome to Cold Case Detective",
-    content: "You are a forensic detective tasked with solving cold cases. Use your investigative skills to examine evidence, connect clues, and identify the culprit. Can you crack the case?",
+    title: "Welcome Detective",
+    content: "You are a forensic detective tasked with solving cases. Use your investigative skills to examine evidence, connect clues, and identify the culprit. Can you crack the case?",
     icon: "🔍"
   },
   {
@@ -76,7 +76,7 @@ const TUTORIAL_SLIDES: TutorialSlide[] = [
   },
   {
     title: "Ready to Start?",
-    content: "You now have the knowledge to begin your investigation. Each case is unique with its own puzzles to solve. Apply your detective skills, trust the evidence, and solve the cold case. Good luck!",
+    content: "You now have the knowledge to begin your investigation. Each case is unique with its own puzzles to solve. Apply your detective skills, trust the evidence, and solve the case. Good luck!",
     icon: "🔎"
   }
 ];

@@ -67,11 +67,11 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen w-full bg-[#121212] text-gray-100 overflow-hidden font-sans">
-      
+      <Leva hidden />
       {/* Sidebar: Controls & History */}
       <aside className="w-96 flex flex-col border-r border-gray-800 bg-[#1a1a1a]">
         <div className="p-6 border-b border-gray-800">
-          <h1 className="text-2xl font-bold tracking-tight text-white mb-1">Cold Case<span className="text-blue-500">Gen</span></h1>
+          <h1 className="text-2xl font-bold tracking-tight text-white mb-1">Case<span className="text-blue-500">Gen</span></h1>
           <p className="text-xs text-gray-500 uppercase tracking-widest">Procedural Document System</p>
         </div>
 

@@ -56,6 +56,7 @@ export interface CaseFile {
   solution: CaseSolution;
   visualTheme?: string;
   status: 'draft' | 'published';
+  deductionRules?: any[]; // Pre-generated deduction rules for this case (SolutionRule[])
 }
 
 // --- Generation Wizard Types ---

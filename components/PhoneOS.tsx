@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Send, AlertTriangle, ChevronLeft } from 'lucide-react';
 import { useGameStore } from '../stores/useGameStore';
+import { useAudioContext } from '../contexts/AudioContext';
 import { CaseFile } from '../types';
 import { getInterrogationReply } from '../services/interrogationService';
 import type { InterrogationMessage } from '../stores/useGameStore';
@@ -19,6 +20,7 @@ export const PhoneOS: React.FC<PhoneOSProps> = ({ caseFile }) => {
     const interrogationSessions = useGameStore(state => state.interrogationSessions);
     const appendInterrogationMessage = useGameStore(state => state.appendInterrogationMessage);
     const setView = useGameStore(state => state.setView);
+    const { playSFX } = useAudioContext();
 
     console.log('[PhoneOS] Current view:', currentView, 'Solved:', solved);
 
@@ -92,6 +94,8 @@ export const PhoneOS: React.FC<PhoneOSProps> = ({ caseFile }) => {
     const handleSend = async () => {
         if (!caseFile || !activeSuspect || !input.trim() || !sessionKey) return;
         setError(null);
+        playSFX('phone-send');
+
 
         const messageText = input.trim();
         const userMessage: InterrogationMessage = {
@@ -183,6 +187,7 @@ export const PhoneOS: React.FC<PhoneOSProps> = ({ caseFile }) => {
                         <button
                             key={suspect.id}
                             onClick={() => {
+                                playSFX('phone-tap');
                                 setSelectedSuspectId(suspect.id);
                                 setShowSuspectList(false);
                             }}

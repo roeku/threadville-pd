@@ -43,7 +43,46 @@ const getPinOffset = (item?: EvidenceItem) => {
     return new THREE.Vector3(0, 0.02, -height / 2 + 0.02);
 }
 
-const SingleConnection = ({ conn, itemRefs, evidence, parentRef, onConnectionClick, isActive }: { conn: EvidenceLink, itemRefs: any, evidence: EvidenceItem[], parentRef?: any, onConnectionClick?: (id: string) => void, isActive: boolean }) => {
+const getDirectionalOffset = (
+    dir: THREE.Vector3,
+    slotIndex: number,
+    slotCount: number,
+    radius = 0.018,
+    spread = 0.014
+) => {
+    const dir2d = new THREE.Vector3(dir.x, dir.y, 0);
+    if (dir2d.lengthSq() < 1e-6) return new THREE.Vector3(0, 0, 0);
+    dir2d.normalize();
+    const perp = new THREE.Vector3(-dir2d.y, dir2d.x, 0);
+    const centeredIndex = slotIndex - (slotCount - 1) / 2;
+    const fan = perp.multiplyScalar(centeredIndex * spread);
+    const forward = dir2d.multiplyScalar(radius);
+    return forward.add(fan);
+};
+
+const SingleConnection = ({
+    conn,
+    itemRefs,
+    evidence,
+    parentRef,
+    onConnectionClick,
+    isActive,
+    slotIndexFrom,
+    slotCountFrom,
+    slotIndexTo,
+    slotCountTo
+}: {
+    conn: EvidenceLink,
+    itemRefs: any,
+    evidence: EvidenceItem[],
+    parentRef?: any,
+    onConnectionClick?: (id: string) => void,
+    isActive: boolean,
+    slotIndexFrom: number,
+    slotCountFrom: number,
+    slotIndexTo: number,
+    slotCountTo: number
+}) => {
     const lineRef = useRef<any>(null);
     const hitAreaRef = useRef<any>(null);
     const [hovered, setHovered] = React.useState(false);
@@ -96,6 +135,7 @@ const SingleConnection = ({ conn, itemRefs, evidence, parentRef, onConnectionCli
         const r2 = endBody.rotation();
 
         // Pin Offset Logic - reuse memoized item refs instead of refetching
+        const dirWorld = new THREE.Vector3(p2.x - p1.x, p2.y - p1.y, 0);
         const pinLocal1 = getPinOffset(fromItem);
         const pinLocal2 = getPinOffset(toItem);
 
@@ -109,6 +149,11 @@ const SingleConnection = ({ conn, itemRefs, evidence, parentRef, onConnectionCli
         startVec.add(pinLocal1.clone().applyQuaternion(q1));
         endVec.add(pinLocal2.clone().applyQuaternion(q2));
 
+        const offsetFrom = getDirectionalOffset(dirWorld, slotIndexFrom, slotCountFrom);
+        const offsetTo = getDirectionalOffset(dirWorld.clone().multiplyScalar(-1), slotIndexTo, slotCountTo);
+        startVec.add(offsetFrom);
+        endVec.add(offsetTo);
+
         // Transform to Local Space if parentRef provided
         if (parentRef?.current) {
             parentRef.current.worldToLocal(startVec);
@@ -121,7 +166,7 @@ const SingleConnection = ({ conn, itemRefs, evidence, parentRef, onConnectionCli
 
         midVec.lerpVectors(startVec, endVec, 0.5);
         midVec.y -= droop;
-        midVec.z += 0.05; // Pull forward from board surface
+        midVec.z += 0.05; // Pull forward from board surface, over evidence
 
         lineRef.current.setPoints(startVec, endVec, midVec);
         if (hitAreaRef.current) {
@@ -143,6 +188,8 @@ const SingleConnection = ({ conn, itemRefs, evidence, parentRef, onConnectionCli
                 dashScale={10}
                 opacity={opacity}
                 transparent
+                depthWrite={false}
+                renderOrder={5}
             />
             {/* Hit Area Line (Invisible, Thicker) */}
             <QuadraticBezierLine
@@ -152,15 +199,18 @@ const SingleConnection = ({ conn, itemRefs, evidence, parentRef, onConnectionCli
                 opacity={0}
                 transparent
                 depthWrite={false}
+                renderOrder={5}
                 onClick={(e) => {
                     e.stopPropagation();
                     onConnectionClick?.(conn.id);
                 }}
-                onPointerOver={() => {
+                onPointerOver={(e) => {
+                    e.stopPropagation();
                     setHovered(true);
                     document.body.style.cursor = 'pointer';
                 }}
-                onPointerOut={() => {
+                onPointerOut={(e) => {
+                    e.stopPropagation();
                     setHovered(false);
                     document.body.style.cursor = 'auto';
                 }}
@@ -224,13 +274,17 @@ const DraggingConnection = ({ fromId, mousePos, itemRefs, evidence, parentRef, i
             endVec.set(mousePos[0], mousePos[1], mousePos[2]);
         }
 
+        const dirWorld = new THREE.Vector3(endVec.x - startVec.x, endVec.y - startVec.y, 0);
+        const dragOffset = getDirectionalOffset(dirWorld, 0, 1);
+        startVec.add(dragOffset);
+
         // Catenary
         const dist = startVec.distanceTo(endVec);
         const droop = Math.min(dist * 0.2, 0.5);
 
         midVec.lerpVectors(startVec, endVec, 0.5);
         midVec.y -= droop;
-        midVec.z += 0.05; // Pull forward from board surface
+        midVec.z += 0.05; // Pull forward from board surface, over evidence
 
         lineRef.current.setPoints(startVec, endVec, midVec);
     });
@@ -245,6 +299,8 @@ const DraggingConnection = ({ fromId, mousePos, itemRefs, evidence, parentRef, i
             dashScale={5}
             opacity={0.6}
             transparent
+            depthWrite={false}
+            renderOrder={5}
         />
     )
 
@@ -254,11 +310,40 @@ const ConnectionLayer: React.FC<Props> = ({ connections, itemRefs, evidence, int
     const currentView = useGameStore(state => state.currentView);
     const isActive = currentView === 'BOARD';
 
+    const connectionSlots = useMemo(() => {
+        const map = new Map<string, string[]>();
+        connections.forEach(conn => {
+            if (!map.has(conn.fromId)) map.set(conn.fromId, []);
+            if (!map.has(conn.toId)) map.set(conn.toId, []);
+            map.get(conn.fromId)!.push(conn.id);
+            map.get(conn.toId)!.push(conn.id);
+        });
+        return map;
+    }, [connections]);
+
     return (
         <group>
-            {connections.map(conn => (
-                <SingleConnection key={conn.id} conn={conn} itemRefs={itemRefs} evidence={evidence} parentRef={parentRef} onConnectionClick={onConnectionClick} isActive={isActive} />
-            ))}
+            {connections.map(conn => {
+                const fromList = connectionSlots.get(conn.fromId) || [];
+                const toList = connectionSlots.get(conn.toId) || [];
+                const slotIndexFrom = fromList.indexOf(conn.id);
+                const slotIndexTo = toList.indexOf(conn.id);
+                return (
+                    <SingleConnection
+                        key={conn.id}
+                        conn={conn}
+                        itemRefs={itemRefs}
+                        evidence={evidence}
+                        parentRef={parentRef}
+                        onConnectionClick={onConnectionClick}
+                        isActive={isActive}
+                        slotIndexFrom={slotIndexFrom === -1 ? 0 : slotIndexFrom}
+                        slotCountFrom={Math.max(1, fromList.length)}
+                        slotIndexTo={slotIndexTo === -1 ? 0 : slotIndexTo}
+                        slotCountTo={Math.max(1, toList.length)}
+                    />
+                );
+            })}
 
             {interaction.linkingFromId && (
                 <DraggingConnection

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Dna, Fingerprint, FolderSearch, Settings, Image, FileText, Archive } from 'lucide-react';
+import { Activity, Dna, Fingerprint, FolderSearch, Settings, Image, FileText, Archive, Smartphone } from 'lucide-react';
 import { AppConfig, AppId } from './types';
 import { DnaSequencer } from './apps/DnaSequencer';
 import { FingerprintScanner } from './apps/FingerprintScanner';
@@ -38,9 +38,9 @@ export const APPS: Record<AppId, AppConfig> = {
     decryptor: {
         id: 'decryptor',
         name: 'Decryptor v3',
-        icon: <Activity className="w-full h-full" />,
-        defaultW: 55,
-        defaultH: 55,
+        icon: <Smartphone className="w-full h-full" />,
+        defaultW: 70,
+        defaultH: 75,
         component: Decryptor,
     },
     evidence: {

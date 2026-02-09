@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronDown, HelpCircle, X } from 'lucide-react';
+import { ChevronDown, HelpCircle, X, Volume2, VolumeX, Music } from 'lucide-react';
+import { useAudioContext } from '../contexts/AudioContext';
 
 interface HelpTip {
   title: string;
@@ -58,6 +59,7 @@ interface GameHelpProps {
 export default function GameHelp({ isOpen, onClose }: GameHelpProps) {
   const [expandedCategory, setExpandedCategory] = useState<string | null>('controls');
   const [selectedTip, setSelectedTip] = useState<HelpTip | null>(null);
+  const { settings, updateSettings } = useAudioContext();
 
   const categories = ['controls', 'deduction', 'evidence', 'strategy'] as const;
   const categoryLabels = {
@@ -95,6 +97,103 @@ export default function GameHelp({ isOpen, onClose }: GameHelpProps) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
+          {/* Audio Settings Section */}
+          <div className="border-b border-slate-700 bg-slate-800/30">
+            <div className="p-4 space-y-4">
+              <h4 className="font-semibold text-slate-200 flex items-center gap-2">
+                <Music size={16} className="text-blue-400" />
+                Audio Settings
+              </h4>
+
+              {/* Music */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-slate-300 flex items-center gap-2">
+                    {settings.musicEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                    Background Music
+                  </label>
+                  <button
+                    onClick={() => updateSettings({ musicEnabled: !settings.musicEnabled })}
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${settings.musicEnabled
+                        ? 'bg-blue-600 text-white hover:bg-blue-500'
+                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                      }`}
+                  >
+                    {settings.musicEnabled ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+                {settings.musicEnabled && (
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={settings.musicVolume * 100}
+                    onChange={(e) => updateSettings({ musicVolume: parseInt(e.target.value) / 100 })}
+                    className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  />
+                )}
+              </div>
+
+              {/* Ambiance */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-slate-300 flex items-center gap-2">
+                    {settings.ambianceEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                    Ambiance (Rain)
+                  </label>
+                  <button
+                    onClick={() => updateSettings({ ambianceEnabled: !settings.ambianceEnabled })}
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${settings.ambianceEnabled
+                        ? 'bg-blue-600 text-white hover:bg-blue-500'
+                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                      }`}
+                  >
+                    {settings.ambianceEnabled ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+                {settings.ambianceEnabled && (
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={settings.ambianceVolume * 100}
+                    onChange={(e) => updateSettings({ ambianceVolume: parseInt(e.target.value) / 100 })}
+                    className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  />
+                )}
+              </div>
+
+              {/* SFX */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-slate-300 flex items-center gap-2">
+                    {settings.sfxEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                    Sound Effects
+                  </label>
+                  <button
+                    onClick={() => updateSettings({ sfxEnabled: !settings.sfxEnabled })}
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${settings.sfxEnabled
+                        ? 'bg-blue-600 text-white hover:bg-blue-500'
+                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                      }`}
+                  >
+                    {settings.sfxEnabled ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+                {settings.sfxEnabled && (
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={settings.sfxVolume * 100}
+                    onChange={(e) => updateSettings({ sfxVolume: parseInt(e.target.value) / 100 })}
+                    className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
           {selectedTip ? (
             // Single tip view
             <div className="p-4 space-y-4">

@@ -9,9 +9,11 @@ import MainMenu from './components/MainMenu';
 import AdminDashboard from './components/admin/AdminDashboard';
 import { startCaseSession, completeCaseSession, getSessionReport } from './services/gameProgressService';
 import { AuthProvider } from './contexts/AuthContext';
+import { AudioProvider } from './contexts/AudioContext';
 import GameHelp from './components/GameHelp';
 import InGameTutorial from './components/InGameTutorial';
 import { useTutorial } from './hooks/useTutorial';
+import {Leva} from 'leva';
 
 function AppContent() {
   const [gameState, setGameState] = useState<GameState>({
@@ -90,18 +92,43 @@ function AppContent() {
 
   const handleStartCase = async (caseData: CaseFile) => {
     // FIX: Hydrate missing Suspect Profiles so they appear on the board
+    // Board position and scale (from GameScene default values)
+    const BOARD_WORLD_POS = { x: 0.2, y: 1.25, z: 0.4 };
+    const BOARD_SCALE = 0.15;
+    const BOARD_WIDTH = 9 * BOARD_SCALE;  // 1.5 units
+    const BOARD_HEIGHT = 8 * BOARD_SCALE;   // 0.9 units
+    
     caseData.suspects.forEach((suspect, index) => {
-      const exists = caseData.entities.some(e => e.id === `PROFILE-${suspect.id}` || e.label.includes(suspect.name));
+      const exists = caseData.entities.some(e => e.id === `PROFILE-${suspect.id}`);
       if (!exists) {
         console.log(`[Hydration] Generating missing profile card for: ${suspect.name}`);
+        
+        // Spread suspects across the board by index with slight randomness
+        // Board is rotated 180° around Y-axis, so:
+        // - Visual horizontal (left-right) = Z axis variation
+        // - Visual vertical (up-down) = Y axis variation
+        const SUSPECT_SPACING_Z = 0.2; // base horizontal spacing per suspect
+        const baseZ = (index - (caseData.suspects.length - 1) / 2) * SUSPECT_SPACING_Z;
+        const jitterZ = (Math.random() - 0.5) * 0.08; // small horizontal jitter
+        const spreadZ = baseZ + jitterZ;
+        const spreadY = (Math.random() * 0.6) - 0.3; // slight vertical variation
+        const randomRotZ = (Math.random() - 0.5) * 0.4; // Slight random rotation
+        
+        // Direct world coordinates
+        const worldX = BOARD_WORLD_POS.x;
+        const worldY = BOARD_WORLD_POS.y + spreadY;
+        const worldZ = BOARD_WORLD_POS.z + spreadZ; // Vary Z for horizontal spread on rotated board
+        
+        console.log(`  → Positioned at [${worldX.toFixed(2)}, ${worldY.toFixed(2)}, ${worldZ.toFixed(2)}]`);
+        
         caseData.entities.push({
           id: `PROFILE-${suspect.id}`,
           type: EvidenceType.PHOTO,
           label: `${suspect.name}`,
           description: `Profile card for ${suspect.name}. ${suspect.bio}`,
           content: suspect.notes,
-          position: [(index * 0.2) - 0.5, 1.8, 0], // Row at top of board
-          rotation: [0, 0, 0],
+          position: [worldX, worldY, worldZ],
+          rotation: [0, Math.PI, randomRotZ], // Match board rotation + slight tilt
           clues: [suspect.bio],
           imageUrl: suspect.photoUrl || undefined
         });
@@ -115,6 +142,14 @@ function AppContent() {
     console.log('\n=== DEDUCTION PUZZLE ===');
     console.log(`Total Rules: ${deductionState.rules.length}`);
     console.log(`Critical Rules: ${deductionState.criticalRuleIds.length}`);
+    console.log('\n--- ALL CONNECTIONS (Rules) ---');
+    deductionState.rules.forEach((rule, i) => {
+      const sourceItem = caseData.entities.find(e => e.id === rule.source) || caseData.suspects.find(s => s.id === rule.source);
+      const targetItem = caseData.entities.find(e => e.id === rule.target) || caseData.suspects.find(s => s.id === rule.target);
+      const tag = rule.isRedHerring ? ' (Red Herring)' : rule.weight >= 1.0 ? ' (Critical)' : '';
+      console.log(`${i + 1}. [${sourceItem?.label || rule.source}] --${rule.type}--> [${targetItem?.label || targetItem?.name || rule.target}]${tag}`);
+      console.log(`   Reasoning: ${rule.reasoning}`);
+    });
     console.log('\n--- CRITICAL CONNECTIONS (Required to solve) ---');
     deductionState.rules
       .filter(r => r.weight >= 1.0 && !r.isRedHerring)
@@ -138,6 +173,11 @@ function AppContent() {
     clearLinks();
     clearAllInterrogations();
     setSolved(false);
+    
+    // Auto-pin all suspect profiles to the board
+    const suspectProfileIds = caseData.suspects.map(s => `PROFILE-${s.id}`);
+    setPinnedItems(new Set(suspectProfileIds));
+    
     setGameState(prev => ({
       ...prev,
       currentCase: caseData,
@@ -324,6 +364,7 @@ function AppContent() {
 
   return (
     <div style={{ height: "100vh", width: "100vw" }} className="relative w-full h-full overflow-hidden text-neutral-200 font-sans select-none">
+      <Leva hidden />
 
 
       {/* ADMIN MODE */}
@@ -421,7 +462,7 @@ function AppContent() {
           {/* Global Document Navigation HUD */}
           {gameState.focusedItemId && documentStates[gameState.focusedItemId] && documentStates[gameState.focusedItemId].totalPages > 1 && (
             <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 pointer-events-auto z-50">
-              <div className="flex items-center gap-4 bg-black/90 text-white rounded-full px-6 py-3 backdrop-blur-md shadow-2xl border border-white/20">
+              <div className="flex items-center gap-4 bg-black/10 text-white rounded-full px-6 py-3 backdrop-blur-sm shadow-2xl border border-white/20">
                 <button
                   onClick={() => {
                     const s = documentStates[gameState.focusedItemId!];
@@ -481,7 +522,9 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <AudioProvider>
+        <AppContent />
+      </AudioProvider>
     </AuthProvider>
   );
 }

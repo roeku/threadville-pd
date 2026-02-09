@@ -2,11 +2,20 @@ import React from 'react';
 import { useOS } from '../context/OSContext';
 import { APPS } from '../constants';
 import { WindowFrame } from './WindowFrame';
+import { WindowErrorBoundary } from './WindowErrorBoundary';
 import { AppId, WindowState } from '../types';
 
 export const Desktop: React.FC = () => {
     const { windows, openApp } = useOS();
     const containerRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        console.log('[Desktop] Windows updated:', Object.keys(windows).map(id => ({ id, app: windows[id].appId, visible: !windows[id].isMinimized, x: windows[id].x, y: windows[id].y, z: windows[id].zIndex })));
+        if (containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            console.log('[Desktop] Container size/position:', { width: rect.width, height: rect.height, top: rect.top, left: rect.left, visible: rect.width > 0 && rect.height > 0 });
+        }
+    }, [windows]);
 
     return (
         <div ref={containerRef} className="flex-1 relative overflow-hidden p-4">
@@ -33,7 +42,9 @@ export const Desktop: React.FC = () => {
                 const App = APPS[win.appId].component;
                 return (
                     <WindowFrame key={win.id} window={win} parentRef={containerRef}>
-                        <App data={win.data} />
+                        <WindowErrorBoundary appName={APPS[win.appId].name}>
+                            <App data={win.data} />
+                        </WindowErrorBoundary>
                     </WindowFrame>
                 );
             })}

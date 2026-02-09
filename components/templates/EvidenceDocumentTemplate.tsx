@@ -125,14 +125,14 @@ export default function EvidenceDocumentTemplate({ data }: EvidenceDocumentTempl
 
               {/* Collection Data Grid */}
               <div className="relative mb-4 grid grid-cols-2 gap-3">
-                <div className="border border-slate-500 bg-slate-200/40 p-3">
+                {/* <div className="border border-slate-500 bg-slate-200/40 p-3">
                   <div className="text-[10px] text-slate-600 uppercase tracking-widest font-bold mb-1">Location Found</div>
                   <div className="text-sm font-semibold text-slate-900">{data.location || 'Unknown'}</div>
                 </div>
                 <div className="border border-slate-500 bg-slate-200/40 p-3">
                   <div className="text-[10px] text-slate-600 uppercase tracking-widest font-bold mb-1">Date Collected</div>
                   <div className="text-sm font-semibold text-slate-900">{data.dateCollected || 'Not Recorded'}</div>
-                </div>
+                </div> */}
                 <div className="border border-slate-500 bg-slate-200/40 p-3">
                   <div className="text-[10px] text-slate-600 uppercase tracking-widest font-bold mb-1">Collected By</div>
                   <div className="text-sm font-semibold text-slate-900">{data.collectedBy || 'CSI Unit'}</div>

@@ -335,7 +335,13 @@ export const useGameStore = create<StoreState>((set, get) => ({
   incrementTextureLoading: () => set((state) => ({ texturesLoadingCount: state.texturesLoadingCount + 1 })),
   decrementTextureLoading: () => set((state) => ({ texturesLoadingCount: Math.max(0, state.texturesLoadingCount - 1) })),
 
-  setView: (view) => set({ currentView: view }),
+  setView: (view) => {
+    const current = useGameStore.getState().currentView;
+    if (current !== view) {
+      console.log('[GameStore] setView:', current, '->', view, 'stack:', new Error().stack?.split('\n').slice(1, 5).join(' | '));
+    }
+    return set({ currentView: view });
+  },
   setInspecting: (inspecting) => set({ isInspecting: inspecting }),
   setHoveredItem: (id) => set({ hoveredItemId: id }),
   setFocusedItem: (id) => set({ focusedItemId: id }),

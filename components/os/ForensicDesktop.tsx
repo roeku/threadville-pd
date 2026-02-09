@@ -5,6 +5,7 @@ import { Desktop } from './system/Desktop';
 import { Taskbar } from './system/Taskbar';
 import { CaseFile } from '../../types';
 import { useGameStore } from '../../stores/useGameStore';
+import { useAudioContext } from '../../contexts/AudioContext';
 
 interface ForensicDesktopProps {
     currentCase: CaseFile | null;
@@ -16,20 +17,23 @@ interface ForensicDesktopProps {
 const OSIntegration: React.FC<{ startApp?: string }> = ({ startApp }) => {
     const { focusedItemId, pendingOsApp, setPendingOsApp } = useGameStore();
     const { openApp, currentCase } = useOS();
+    const { playSFX } = useAudioContext();
 
     // Open specified app on mount if provided
     useEffect(() => {
         if (startApp) {
+            playSFX('computer-click');
             openApp(startApp as any);
         }
-    }, [startApp, openApp]);
+    }, [startApp, openApp, playSFX]);
 
     // Open app requested by in-world triggers (e.g. phone)
     useEffect(() => {
         if (!pendingOsApp) return;
+        playSFX('computer-click');
         openApp(pendingOsApp as any);
         setPendingOsApp(null);
-    }, [pendingOsApp, openApp, setPendingOsApp]);
+    }, [pendingOsApp, openApp, setPendingOsApp, playSFX]);
 
     useEffect(() => {
         if (!focusedItemId || !currentCase) return;
@@ -44,6 +48,7 @@ const OSIntegration: React.FC<{ startApp?: string }> = ({ startApp }) => {
             let appId = null;
             if (entity.forensicData.type === 'DNA') appId = 'dna';
             if (entity.forensicData.type === 'FINGERPRINT') appId = 'fingerprint';
+            if (entity.forensicData.type === 'DECRYPTOR') appId = 'decryptor';
             if (entity.forensicData.type === 'AUDIO') appId = 'spectrograph';
 
             if (appId) {
@@ -72,6 +77,7 @@ export const ForensicDesktop: React.FC<ForensicDesktopProps> = ({ currentCase, o
     const setIsPointerOnComputer = useGameStore((state) => state.setIsPointerOnComputer);
     const handleOSClick = () => {
         const { currentView, setView } = useGameStore.getState();
+        console.log('[ForensicDesktop] handleOSClick fired. Current view:', currentView);
         if (currentView !== 'COMPUTER') {
             console.log('[ViewChange][ForensicDesktop] click', { from: currentView, to: 'COMPUTER' });
             setView('COMPUTER');

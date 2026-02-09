@@ -478,7 +478,7 @@ export default function CaseEditor({ mode, caseId, onSave }: CaseEditorProps) {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                         {narrative.suspects.map(s => (
                                             <div key={s.id} className={`p-2 rounded border ${s.isCulprit ? 'border-amber-900/50 bg-amber-900/10' : 'border-slate-800 bg-slate-800/50'}`}>
-                                                <img src={s.photoUrl || '/placeholder-mugshot.png'} alt={s.name} className="w-full h-32 object-cover rounded mb-2" />
+                                                {/* <img src={s.photoUrl || '/placeholder-mugshot.png'} alt={s.name} className="w-full h-32 object-cover rounded mb-2" /> */}
                                                 <div className="font-bold text-slate-300 flex justify-between">
                                                     {s.name}
                                                     {s.isCulprit && <span className="text-red-500 text-[10px] uppercase">Culprit</span>}

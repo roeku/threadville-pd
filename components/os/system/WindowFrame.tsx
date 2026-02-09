@@ -17,6 +17,14 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({ window: win, parentRef
     const isActive = windowOrder[windowOrder.length - 1] === win.id;
     const zIndex = windowOrder.indexOf(win.id) + 10;
 
+    const containerRef = React.useRef<HTMLDivElement>(null);
+    React.useEffect(() => {
+        if (containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            console.log('[WindowFrame]', win.id, 'appId:', win.appId, 'z-index:', zIndex, 'computed style:', { position: containerRef.current.style.position, top: containerRef.current.style.top, left: containerRef.current.style.left, width: containerRef.current.style.width, height: containerRef.current.style.height }, 'actual size:', { width: rect.width, height: rect.height, top: rect.top, left: rect.left, visible: rect.width > 0 && rect.height > 0 });
+        }
+    }, [win.x, win.y, win.w, win.h, zIndex, win.appId]);
+
     const { isDragging, handlePointerDown: handleDragStart } = useDraggable({
         id: win.id,
         initialX: win.x,
@@ -49,6 +57,7 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({ window: win, parentRef
 
     return (
         <div
+            ref={containerRef}
             className={`absolute flex flex-col rounded-sm overflow-hidden border border-slate-600 shadow-[0_0_20px_rgba(0,0,0,0.5)] transition-shadow duration-200 select-none ${isActive ? 'shadow-[0_0_30px_rgba(0,255,128,0.1)] border-emerald-500/50' : ''
                 }`}
             style={{
@@ -57,7 +66,21 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({ window: win, parentRef
                 backgroundColor: 'rgba(15, 23, 42, 0.9)',
                 cursor: isDragging ? 'grabbing' : 'auto',
             }}
-            onPointerDown={() => focusWindow(win.id)}
+            onPointerDown={(e) => {
+                e.stopPropagation();
+                focusWindow(win.id);
+            }}
+            onClick={(e) => {
+                // Only respond to clicks directly on this container, not on children
+                if (e.target !== e.currentTarget) {
+                    e.stopPropagation();
+                    return;
+                }
+                e.stopPropagation();
+            }}
+            onMouseDown={(e) => {
+                e.stopPropagation();
+            }}
         >
             {/* Title Bar */}
             <div
@@ -95,7 +118,19 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({ window: win, parentRef
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 relative overflow-hidden bg-center bg-cover text-slate-200 font-mono text-sm" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <div
+                className="flex-1 relative overflow-hidden bg-center bg-cover text-slate-200 font-mono text-sm flex flex-col"
+                style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                }}
+                onPointerDown={(e) => {
+                    e.stopPropagation();
+                }}
+                onMouseDown={(e) => {
+                    e.stopPropagation();
+                }}
+            >
                 {/* Pass data to children if they accept props */}
                 {React.isValidElement(children)
                     ? React.cloneElement(children as React.ReactElement, { data: win.data } as any)

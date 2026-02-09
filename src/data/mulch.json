@@ -134,7 +134,6 @@
                                     "clues": [
                                         "Matches Kenji Sato. Proves he handled the murder weapon, contradicting his claim that he was inside streaming."
                                     ],
-                                    "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/CASE-5958a608/evidence/FOR-001.jpeg",
                                     "metadata": {
                                         "forensicType": "FINGERPRINT"
                                     },
@@ -427,7 +426,6 @@
                                     "clues": [
                                         "Matches Marcus Thorne. Places him at the scene, but likely earlier in the night."
                                     ],
-                                    "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/CASE-5958a608/evidence/FOR-002.jpeg",
                                     "metadata": {
                                         "forensicType": "DNA"
                                     },
@@ -579,7 +577,6 @@
                                     "clues": [
                                         "Matches Kenji Sato. Proves he climbed the fence, directly contradicting his alibi."
                                     ],
-                                    "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/CASE-5958a608/evidence/FOR-003.jpeg",
                                     "metadata": {
                                         "forensicType": "DNA"
                                     },
@@ -608,7 +605,6 @@
                                     "clues": [
                                         "Matches Sarah Jenkins. Confirms she set up the camera, but clears her of being near the body."
                                     ],
-                                    "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/CASE-5958a608/evidence/FOR-004.jpeg",
                                     "metadata": {
                                         "forensicType": "FINGERPRINT"
                                     },
@@ -635,5 +631,109 @@
                     "motive": "Financial ruin and rage over the halted pool construction.",
                         "reasoning": "Kenji's alibi relies on his stream, claiming he only stepped away for a bathroom break between 4:45 AM and 5:15 AM. This time window perfectly aligns with the argument heard at 5:00 AM. The definitive proof lies in Sarah Jenkins' time-lapse video (Evidence item). Although focused on the sunrise, the wide-angle lens captured the edge of Kenji's backyard. In frame 402 (timestamped 5:12 AM), a figure wearing Kenji's distinct neon gaming hoodie is seen hopping the fence back into his own yard, contradicting his claim that he never left his house."
         },
+        "deductionRules": [
+            {
+                "id": "rule_1",
+                "source": "OBJ-002",
+                "target": "FOR-001",
+                "type": "MATCHES",
+                "description": "Fingerprint found on the murder weapon identifies the handler",
+                "weight": 1.0,
+                "reasoning": "The partial latent print (WHORL-LOOP-ARCH) recovered from the bloody base of the gnome proves who wielded the weapon"
+            },
+            {
+                "id": "rule_2",
+                "source": "FOR-001",
+                "target": "S2",
+                "type": "MATCHES",
+                "description": "Fingerprint on weapon matches Kenji Sato",
+                "weight": 1.0,
+                "reasoning": "Forensic analysis confirms the partial thumbprint (WHORL-LOOP-ARCH) belongs to Kenji Sato, placing him in direct contact with the murder weapon"
+            },
+            {
+                "id": "rule_3",
+                "source": "DOC-001",
+                "target": "OBJ-002",
+                "type": "MATCHES",
+                "description": "Autopsy confirms weapon shape matches wound pattern",
+                "weight": 1.0,
+                "reasoning": "Medical examiner's report confirms the injury pattern on the victim's cranium is consistent with being struck by the garden gnome"
+            },
+            {
+                "id": "rule_4",
+                "source": "DIG-001",
+                "target": "S2",
+                "type": "CONTRADICTS",
+                "description": "SD card timelapse proves Kenji was outside during murder window",
+                "weight": 1.0,
+                "reasoning": "Frame 402 from Sarah Jenkins' camera (timestamp 5:12 AM) captures Kenji in dark athletic wear hopping the fence, directly contradicting his claim of being inside streaming the entire time"
+            },
+            {
+                "id": "rule_5",
+                "source": "DOC-004",
+                "target": "S2",
+                "type": "CONTRADICTS",
+                "description": "Stream logs show gap in activity during murder window",
+                "weight": 0.9,
+                "reasoning": "Twitch server logs for user 'KenjiKills_FPS' reveal a suspicious gap in keyboard/mouse activity from 5:05 AM to 5:15 AM, perfectly aligning with the time he was captured outside"
+            },
+            {
+                "id": "rule_6",
+                "source": "DOC-002",
+                "target": "S2",
+                "type": "MOTIVATES",
+                "description": "HOA violation notice provides financial motive",
+                "weight": 1.0,
+                "reasoning": "The crumpled violation notice found in Kenji's trash shows Artie halted his $50,000 infinity pool construction indefinitely, establishing clear financial motive for murder"
+            },
+            {
+                "id": "rule_7",
+                "source": "DOC-007",
+                "target": "S2",
+                "type": "MATCHES",
+                "description": "Witness heard argument between Artie and male voice at 5:00 AM",
+                "weight": 0.9,
+                "reasoning": "Neighbor statement documents a heated argument near the fence line at 5:00 AM, consistent with Kenji confronting Artie during the murder window"
+            },
+            {
+                "id": "rule_8",
+                "source": "DOC-005",
+                "target": "DOC-001",
+                "type": "MATCHES",
+                "description": "Patrol notebook confirms victim's location and time",
+                "weight": 0.8,
+                "reasoning": "Artie's last notebook entry documents his position at the exact location where he was found, corroborating the timeline"
+            },
+            {
+                "id": "rule_9",
+                "source": "FOR-002",
+                "target": "S4",
+                "type": "MATCHES",
+                "description": "DNA on beer bottle matches Marcus Thorne",
+                "weight": 0.5,
+                "reasoning": "Red herring - innocent explanation: Marcus was present earlier in the evening (likely 3-4 hours before TOD based on enzymatic breakdown analysis), not during the murder window",
+                "isRedHerring": true
+            },
+            {
+                "id": "rule_10",
+                "source": "OBJ-003",
+                "target": "S4",
+                "type": "CONTRADICTS",
+                "description": "Beer bottle found at scene but timing places Marcus earlier",
+                "weight": 0.6,
+                "reasoning": "Red herring - while Marcus' DNA is on the bottle, forensic timeline analysis shows deposition occurred hours before Artie's death, eliminating him as suspect",
+                "isRedHerring": true
+            },
+            {
+                "id": "rule_11",
+                "source": "DOC-006",
+                "target": "S1",
+                "type": "MOTIVATES",
+                "description": "Threatening note implicates Elena Rosales",
+                "weight": 0.5,
+                "reasoning": "Red herring - old evidence: while the perfumed note does reference threats, it is dated two weeks prior to the murder, making it irrelevant to the current crime",
+                "isRedHerring": true
+            }
+        ],
         "status": "draft"
 }

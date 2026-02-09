@@ -26,7 +26,7 @@ const TUTORIAL_STEPS: TutorialStepConfig[] = [
   {
     id: 'welcome',
     title: 'Welcome, Detective',
-    description: 'You\'ve been assigned a cold case. Your investigation board contains all the evidence you need to solve it. Let me show you how to investigate.',
+    description: 'You\'ve been assigned a case. Your investigation board contains all the evidence you need to solve it. Let me show you how to investigate.',
     position: 'center',
     canSkip: true
   },

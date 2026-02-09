@@ -1,4 +1,5 @@
 import { useGameStore } from '../stores/useGameStore';
+import { useAudioContext } from '../contexts/AudioContext';
 import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
 import { useFrame, useThree } from '@react-three/fiber';
@@ -72,6 +73,7 @@ const DeductionPin = React.memo(({ onClick, visible }: { onClick: (e: any) => vo
       <mesh
         position={[0, -0.04, 0]}
         castShadow
+        renderOrder={10}
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
         onPointerDown={handlePointerDown}
@@ -86,6 +88,7 @@ const DeductionPin = React.memo(({ onClick, visible }: { onClick: (e: any) => vo
         position={[0, 0, 0]}
         castShadow
         receiveShadow
+        renderOrder={10}
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
         onPointerDown={handlePointerDown}
@@ -100,6 +103,7 @@ const DeductionPin = React.memo(({ onClick, visible }: { onClick: (e: any) => vo
         position={[0, 0.035, 0]}
         castShadow
         receiveShadow
+        renderOrder={10}
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
         onPointerDown={handlePointerDown}
@@ -114,6 +118,7 @@ const DeductionPin = React.memo(({ onClick, visible }: { onClick: (e: any) => vo
         position={[0, 0.058, 0]}
         castShadow
         receiveShadow
+        renderOrder={10}
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
         onPointerDown={handlePointerDown}
@@ -126,6 +131,7 @@ const DeductionPin = React.memo(({ onClick, visible }: { onClick: (e: any) => vo
       <mesh
         position={[0, 0.02, 0]}
         visible={false}
+        renderOrder={10}
         onClick={handleClick}
         onPointerDown={handlePointerDown}
       >
@@ -137,6 +143,7 @@ const DeductionPin = React.memo(({ onClick, visible }: { onClick: (e: any) => vo
 
 interface EvidenceObjectProps {
   item: EvidenceItem;
+  evidenceIndex?: number;
   isFocused: boolean;
   onFocus: (id: string) => void;
   onUnfocus: () => void;
@@ -147,7 +154,8 @@ interface EvidenceObjectProps {
 }
 
 const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: React.Ref<RapierRigidBody>) => {
-  const { item, isFocused, onFocus, onUnfocus, isPinned, onPin, onPinClick, sceneLiftY = 0 } = props;
+  const { playSFX } = useAudioContext();
+  const { item, evidenceIndex, isFocused, onFocus, onUnfocus, isPinned, onPin, onPinClick, sceneLiftY = 0 } = props;
   const localRef = useRef<RapierRigidBody>(null);
   useImperativeHandle(ref, () => localRef.current!);
   // Note: this assumes localRef is populated. Rapier might load async? usually fine.
@@ -170,6 +178,14 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
   const boardPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, -1), 0.38), []);
   const deskPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
   const dragPoint = useRef(new THREE.Vector3());
+
+  // Small per-item Z offset to avoid z-fighting when items overlap on the board
+  const boardZOffset = useMemo(() => {
+    const index = evidenceIndex ?? 0;
+    return Math.min(0.01, index * 0.0005);
+  }, [evidenceIndex]);
+
+  const getBoardZ = React.useCallback((baseZ: number) => baseZ - boardZOffset, [boardZOffset]);
 
   useCursor(hovered && !isDragging, 'pointer', 'auto');
   useCursor(isDragging, 'grabbing', 'auto');
@@ -262,7 +278,7 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
         const hit = new THREE.Vector3();
         raycaster.ray.intersectPlane(boardPlane, hit);
         if (hit) {
-          targetPos = new THREE.Vector3(hit.x, hit.y, 0.4);
+          targetPos = new THREE.Vector3(hit.x, hit.y, getBoardZ(0.4));
           // Orient flat against board
           targetRotation.current.setFromEuler(new THREE.Euler(Math.PI / 2, 0, Math.PI));
           if (meshRef.current) meshRef.current.scale.set(1, 1, 1);
@@ -290,7 +306,7 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
 
         } else if (hasBoardHit) {
           // We are projecting onto the wall part
-          targetPos = new THREE.Vector3(boardHit.x, boardHit.y, 0.38);
+          targetPos = new THREE.Vector3(boardHit.x, boardHit.y, getBoardZ(0.38));
           // Orient flat against board
           targetRotation.current.setFromEuler(new THREE.Euler(Math.PI / 2, Math.PI, 0));
           if (meshRef.current) meshRef.current.scale.set(1, 1, 1);
@@ -340,13 +356,16 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
 
   const handlePinClick = React.useCallback((e: any) => {
     if (!isPinned) return;
+    playSFX('board-pin');
     const worldPos = new THREE.Vector3();
     e.object.getWorldPosition(worldPos);
     onPinClick?.(item.id, worldPos);
-  }, [isPinned, onPinClick, item.id]);
+  }, [isPinned, onPinClick, item.id, playSFX]);
 
   const onPointerDown = React.useCallback((e: any) => {
     e.stopPropagation();
+
+    playSFX('evidence-pickup');
 
     // If focused, start manual rotation
     if (isFocused) {
@@ -365,7 +384,7 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
       rigidBody.current.setBodyType(2, true); // KinematicPosition
       rigidBody.current.wakeUp();
     }
-  }, [isFocused]);
+  }, [isFocused, playSFX]);
 
   const onPointerMove = React.useCallback((e: any) => {
     // Handle Rotation/Pan in Focus Mode
@@ -437,11 +456,18 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
 
       if (isOnBoard) {
         if (!isPinned) {
+          playSFX('evidence-place');
           onPin(item.id, true);
-          // Snap to board surface (Board front face ~ 0.5)
-          rigidBody.current.setTranslation({ x: pos.x, y: pos.y, z: 0.38 }, true);
-          // Fixed rotation facing camera (Top of paper becomes Top of board)
-          const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, Math.PI));
+ 
+          // Note: App.tsx uses rotated coordinate system (X=Depth).
+          // However, manual drops use World Coordinates from physics.
+          // World Z=0.38 is the board surface. 
+          rigidBody.current.setTranslation({ x: pos.x, y: pos.y, z: getBoardZ(0.38) }, true);
+          
+          // Fix Rotation: Face camera (Vertical) instead of facing Up (Horizontal "Shelf")
+          // Board is vertical, facing Z approx.
+          // Default Rotation [0,0,0] (from App.tsx) works.
+          const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0));
           rigidBody.current.setRotation(q, true);
 
           rigidBody.current.setBodyType(1, true); // Fixed
@@ -468,7 +494,7 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
       dragStartPos.current = null;
     }
     (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
-  }, [isFocused, isPinned, onPin, onFocus, item.id]);
+  }, [isFocused, isPinned, onPin, onFocus, item.id, playSFX, getBoardZ]);
 
   // Revert physics type when unfocused OR unpinned state changes (from outside)
   useEffect(() => {
@@ -480,7 +506,7 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
         rigidBody.current.wakeUp();
       }
     }
-  }, [isPinned, isFocused]);
+  }, [isPinned, isFocused, getBoardZ]);
 
 
   const borderColor = hovered ? "#ff9900" : "#222";
@@ -702,12 +728,14 @@ const EvidenceObject = React.memo(forwardRef((props: EvidenceObjectProps, ref: R
     }
   }, [isFocused, isPinned]);
 
+  const isMounted = useRef(false);
+
   // Snap pinned items to the board pose on first placement and on reload
   useEffect(() => {
     if (!rigidBody.current || !isPinned || isFocused) return;
 
     const pos = rigidBody.current.translation();
-    rigidBody.current.setTranslation({ x: pos.x, y: pos.y, z: 0.38 }, true);
+    rigidBody.current.setTranslation({ x: pos.x, y: pos.y, z: getBoardZ(0.38) }, true);
 
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, Math.PI));
     rigidBody.current.setRotation(q, true);

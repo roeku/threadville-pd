@@ -1,11 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Smartphone, Lock, Unlock, RefreshCw, Terminal, HelpCircle, Printer } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Lock, Unlock, HelpCircle, RotateCcw, Printer } from 'lucide-react';
 import { useOS } from '../context/OSContext';
-
-const WORD_LENGTH = 6;
-const ROW_COUNT = 16;
-const COL_COUNT = 12;
-const ATTEMPTS_ALLOWED = 4;
 
 const POSSIBLE_WORDS = [
     'ACCESS', 'BRIDGE', 'CIPHER', 'DEVICE', 'ENERGY', 'FILTER',
@@ -13,16 +8,24 @@ const POSSIBLE_WORDS = [
     'MATRIX', 'NUMBER', 'OUTPUT', 'PACKET', 'QUASAR', 'ROUTER',
     'SIGNAL', 'TARGET', 'UNLOCK', 'VECTOR', 'WIDGET', 'ZIGZAG',
     'SYSTEM', 'SECURE', 'MEMORY', 'BUFFER', 'SERVER', 'UPLOAD',
-    'PLAYER', 'KEEPER', 'READER', 'LEADER', 'SEARCH', 'DETECT'
+    'PLAYER', 'KEEPER', 'READER', 'LEADER', 'SEARCH', 'DETECT',
+    'COMBAT', 'CUSTOM', 'FORMAL', 'MARKET', 'EXPORT', 'IMPACT'
 ];
 
-const SYMBOLS = '!@#$%^&*()_+{}[]<>?,./;:=';
+const SYMBOLS = '!@#$%^&*()_+{}[]<>?,./;:=|\\~`';
+const WORD_LENGTH = 6;
+const ROW_COUNT = 16;
+const COL_COUNT = 12;
+const ATTEMPTS_ALLOWED = 4;
+const TOTAL_CHARS = ROW_COUNT * COL_COUNT;
+const NUM_WORDS = 8;
 
-interface CharObj {
+type GameState = 'playing' | 'won' | 'lost';
+
+interface GridCell {
     char: string;
     isWord: boolean;
-    wordId?: number; // Groups chars into a specific word instance
-    index: number; // Global index
+    wordIndex: number | null;
 }
 
 interface DecryptorProps {
@@ -31,132 +34,124 @@ interface DecryptorProps {
     };
 }
 
-// Seeded random generator
-const createSeededRand = (seedStr: string) => {
-    let hash = 0;
-    for (let i = 0; i < seedStr.length; i++) {
-        hash = (hash << 5) - hash + seedStr.charCodeAt(i);
-        hash |= 0;
+// Seeded random number generator
+class SeededRandom {
+    private seed: number;
+
+    constructor(seed: string) {
+        let hash = 0;
+        for (let i = 0; i < seed.length; i++) {
+            hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+            hash = hash & hash;
+        }
+        this.seed = Math.abs(hash);
     }
-    let s = Math.abs(hash);
-    return () => {
-        s = (s * 16807) % 2147483647;
-        return (s - 1) / 2147483646;
-    };
-};
+
+    next(): number {
+        this.seed = (this.seed * 9301 + 49297) % 233280;
+        return this.seed / 233280;
+    }
+
+    nextInt(max: number): number {
+        return Math.floor(this.next() * max);
+    }
+
+    shuffle<T>(array: T[]): T[] {
+        const result = [...array];
+        for (let i = result.length - 1; i > 0; i--) {
+            const j = this.nextInt(i + 1);
+            [result[i], result[j]] = [result[j], result[i]];
+        }
+        return result;
+    }
+}
 
 export const Decryptor: React.FC<DecryptorProps> = ({ data }) => {
     const { currentCase, onPrint } = useOS();
+    const evidence = currentCase?.entities.find(e => e.id === data?.entityId);
 
-    const [grid, setGrid] = useState<CharObj[]>([]);
-    const [candidates, setCandidates] = useState<string[]>([]);
-    const [password, setPassword] = useState('');
+    const [grid, setGrid] = useState<GridCell[]>([]);
+    const [words, setWords] = useState<string[]>([]);
+    const [password, setPassword] = useState<string>('');
+    const [gameState, setGameState] = useState<GameState>('playing');
     const [attempts, setAttempts] = useState(ATTEMPTS_ALLOWED);
     const [logs, setLogs] = useState<string[]>([]);
-    const [hoveredWordId, setHoveredWordId] = useState<number | null>(null);
-    const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-    const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
+    const [hoveredWordIndex, setHoveredWordIndex] = useState<number | null>(null);
     const [resetCount, setResetCount] = useState(0);
+    const [showOverlay, setShowOverlay] = useState(false);
+    const logRef = useRef<HTMLDivElement>(null);
 
-    const logsEndRef = useRef<HTMLDivElement>(null);
-
-    // Get Evidence
-    const evidence = useMemo(() => {
-        if (!data?.entityId || !currentCase) return null;
-        return currentCase.entities.find(e => e.id === data.entityId);
-    }, [data, currentCase]);
-
-    const handlePrintReport = () => {
-        if (!evidence || gameState !== 'won') return;
-        const timestamp = new Date().toLocaleString();
-
-        const reportData = {
-            type: 'forensic-report',
-            caseNumber: currentCase?.id || "UNKNOWN",
-            title: 'Decryption Log',
-            reportType: 'DECRYPTION LOG',
-            analyst: 'Automated Cracker',
-            date: timestamp,
-            evidenceId: evidence.id,
-            findings: `Target device authentication bypassed. Root access granted.\n\nExtracted Password: ${password}\n\nDECRYPTED CONTENT:\n----------------\n${evidence.transcript || evidence.content || "No readable data found."}`,
-            status: "MATCH FOUND",
-        };
-
-        onPrint(
-            `Decryption Log: ${evidence.label}`,
-            `Decryption Report`,
-            reportData
-        );
-    };
-
-    // Initialize Game with Seed
+    // Initialize game
     useEffect(() => {
-        // Generate Seed
-        const seed = (evidence?.id || 'default_seed') + resetCount;
-        const rng = createSeededRand(seed);
+        if (!evidence) return;
 
-        // 1. Select random words
-        // Clone and shuffle
-        const shuffled = [...POSSIBLE_WORDS].sort(() => 0.5 - rng());
-        const selectedWords = shuffled.slice(0, 10);
-        const finalWords = selectedWords.slice(0, 8);
+        const seedStr = `${evidence.id}-${resetCount}`;
+        const rng = new SeededRandom(seedStr);
 
-        // Select password (deterministic based on rng)
-        const targetPassword = finalWords[Math.floor(rng() * finalWords.length)];
+        // Select 8 random words
+        const selectedWords = rng.shuffle(POSSIBLE_WORDS).slice(0, NUM_WORDS);
+        const passwordWord = selectedWords[rng.nextInt(selectedWords.length)];
 
-        setPassword(targetPassword);
-        setCandidates(finalWords);
+        setWords(selectedWords);
+        setPassword(passwordWord);
+        setGameState('playing');
         setAttempts(ATTEMPTS_ALLOWED);
         setLogs([
+            '> DEVICE_LOCK_V3.0',
             '> DEVICE_LOCK_V3.0',
             '> CONNECTED TO TARGET',
             '> AUTHENTICATION REQUIRED',
             '> GUIDE: LIKENESS = MATCHING CHAR AT CORRECT POS'
         ]);
-        setGameState('playing');
 
-        // 2. Build Grid
-        const totalChars = ROW_COUNT * COL_COUNT;
-        const newGrid: CharObj[] = new Array(totalChars).fill(null).map((_, i) => ({
-            char: SYMBOLS[Math.floor(rng() * SYMBOLS.length)],
-            isWord: false,
-            index: i
-        }));
+        // Build grid
+        const newGrid: GridCell[] = [];
 
-        // 3. Insert words
-        const usedIndices = new Set<number>();
+        // Initialize with random symbols
+        for (let i = 0; i < TOTAL_CHARS; i++) {
+            newGrid.push({
+                char: SYMBOLS[rng.nextInt(SYMBOLS.length)],
+                isWord: false,
+                wordIndex: null
+            });
+        }
 
-        finalWords.forEach((word, wordIdx) => {
+        // Insert words at random positions
+        const usedPositions = new Set<number>();
+
+        selectedWords.forEach((word, wordIdx) => {
             let placed = false;
-            let attemptCount = 0;
-            while (!placed && attemptCount < 100) {
-                attemptCount++;
-                // Random start position
-                const startIdx = Math.floor(rng() * (totalChars - WORD_LENGTH));
-                // Ensure line wrapping doesn't break words
-                const row = Math.floor(startIdx / COL_COUNT);
-                const endRow = Math.floor((startIdx + WORD_LENGTH - 1) / COL_COUNT);
+            let attempts = 0;
 
-                if (row !== endRow) continue; // Skip if wraps line
+            while (!placed && attempts < 100) {
+                const row = rng.nextInt(ROW_COUNT);
+                const startCol = rng.nextInt(COL_COUNT - WORD_LENGTH + 1);
+                const startPos = row * COL_COUNT + startCol;
 
-                // Check overlap
-                let overlap = false;
+                // Check if position is available (no overlap)
+                let canPlace = true;
                 for (let i = 0; i < WORD_LENGTH; i++) {
-                    if (usedIndices.has(startIdx + i)) overlap = true;
+                    if (usedPositions.has(startPos + i)) {
+                        canPlace = false;
+                        break;
+                    }
                 }
 
-                if (!overlap) {
+                if (canPlace) {
+                    // Place the word
                     for (let i = 0; i < WORD_LENGTH; i++) {
-                        newGrid[startIdx + i] = {
+                        const pos = startPos + i;
+                        newGrid[pos] = {
                             char: word[i],
                             isWord: true,
-                            wordId: wordIdx,
-                            index: startIdx + i
+                            wordIndex: wordIdx
                         };
-                        usedIndices.add(startIdx + i);
+                        usedPositions.add(pos);
                     }
                     placed = true;
                 }
+
+                attempts++;
             }
         });
 
@@ -165,221 +160,356 @@ export const Decryptor: React.FC<DecryptorProps> = ({ data }) => {
 
     // Auto-scroll logs
     useEffect(() => {
-        logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (logRef.current) {
+            logRef.current.scrollTop = logRef.current.scrollHeight;
+        }
     }, [logs]);
 
-    const getLikeness = (guess: string, target: string) => {
-        let matches = 0;
-        for (let i = 0; i < guess.length; i++) {
-            if (guess[i] === target[i]) matches++;
+    const addLog = (message: string) => {
+        setLogs(prev => [...prev, message]);
+    };
+
+    const calculateLikeness = (guess: string, target: string): number => {
+        let count = 0;
+        for (let i = 0; i < Math.min(guess.length, target.length); i++) {
+            if (guess[i] === target[i]) count++;
         }
-        return matches;
+        return count;
+    };
+
+    const handleCellClick = (index: number) => {
+        if (gameState !== 'playing') return;
+
+        const cell = grid[index];
+
+        if (!cell.isWord) {
+            // Clicked on symbol
+            const row = Math.floor(index / COL_COUNT);
+            const hexAddr = (0xF2A0 + (row * 0x0C)).toString(16).toUpperCase();
+            addLog(`> 0x${hexAddr} ERROR`);
+            return;
+        }
+
+        // Find the complete word
+        const wordIdx = cell.wordIndex;
+        if (wordIdx === null) return;
+
+        const clickedWord = words[wordIdx];
+        handleWordClick(clickedWord);
     };
 
     const handleWordClick = (word: string) => {
         if (gameState !== 'playing') return;
 
         if (word === password) {
+            // Win!
+            addLog(`> ${word}`);
+            addLog('> PASSWORD ACCEPTED');
+            addLog('> SYSTEM UNLOCKED');
             setGameState('won');
-            setLogs(prev => [...prev, `> ${word}`, '> PASSWORD ACCEPTED', '> SYSTEM UNLOCKED']);
+            // Smooth reveal with delay
+            setTimeout(() => setShowOverlay(true), 800);
         } else {
-            const likeness = getLikeness(word, password);
+            // Wrong guess
+            const likeness = calculateLikeness(word, password);
             const newAttempts = attempts - 1;
             setAttempts(newAttempts);
-            setLogs(prev => [...prev, `> ${word}`, `> ENTRY DENIED`, `> LIKENESS=${likeness}/${WORD_LENGTH}`]);
 
-            if (newAttempts <= 0) {
+            addLog(`> ${word}`);
+            addLog('> ENTRY DENIED');
+            addLog(`> LIKENESS=${likeness}/${WORD_LENGTH}`);
+
+            if (newAttempts === 0) {
                 setGameState('lost');
-                setLogs(prev => [...prev, '> LOCKOUT IMMINENT', '> TERMINATING SESSION']);
+                addLog('> LOCKOUT INITIATED');
+                addLog('> SYSTEM LOCKED');
+                addLog('> CONTACT ADMINISTRATOR');
             }
         }
     };
 
-    const resetGame = () => {
+    const handleHelp = () => {
+        addLog('> --- HELP ---');
+        addLog('> GOAL: GUESS THE PASSWORD');
+        addLog('> LIKENESS: NUMBER OF CHARACTERS THAT MATCH THE PASSWORD AT THE EXACT SAME POSITION.');
+        addLog('> EXAMPLE: "ABCD" vs "AEBF" = LIKENESS 1 ("A" IS MATCH)');
+    };
+
+    const handleReboot = () => {
+        setShowOverlay(false);
         setResetCount(prev => prev + 1);
     };
 
-    const handleHelp = () => {
-        setLogs(prev => [
-            ...prev,
-            '> --- HELP ---',
-            '> GOAL: GUESS THE PASSWORD',
-            '> LIKENESS: NUMBER OF CHARACTERS THAT MATCH THE PASSWORD AT THE EXACT SAME POSITION.',
-            '> EXAMPLE: "ABCD" vs "AEBF" = LIKENESS 1 ("A" IS MATCH)'
-        ]);
+    const handlePrint = () => {
+        if (!evidence || gameState !== 'won') return;
+
+        const timestamp = new Date().toLocaleString();
+
+        // Format content properly for server-log template
+        const content = evidence.transcript || evidence.content || 'No decrypted data available';
+
+        // ServerLogTemplate expects 'entries' as string[] in metadata.fields
+        const logEntries = content.split('\n');
+
+        onPrint?.(content, `${evidence.label} - Decrypted`, {
+            type: 'server-log',
+            templateId: 'server-log',
+            evidenceId: evidence.id,
+            date: timestamp,
+            source: evidence.label,
+            timestampRange: timestamp,
+            entries: logEntries, // Add at top level for getValue to find
+            fields: {
+                'Device': evidence.label,
+                'Evidence ID': evidence.id,
+                'Status': 'UNLOCKED',
+                'Method': 'Brute Force Authentication Bypass',
+                'Password': password,
+                'Timestamp': timestamp,
+                entries: logEntries // CRITICAL: Also add inside fields for template compatibility
+            }
+        }, `DECRYPT-${evidence.id}-${Date.now()}`);
+
+        addLog('> REPORT GENERATED');
+        addLog('> DATA LOGGED TO PRINTER');
     };
 
-    if (!evidence && !data) {
+    const handleMouseEnter = (index: number) => {
+        const cell = grid[index];
+        if (cell.isWord) {
+            setHoveredWordIndex(cell.wordIndex);
+        }
+    };
+
+    const handleMouseLeave = () => {
+        setHoveredWordIndex(null);
+    };
+
+    if (!evidence) {
         return (
-            <div className="h-full flex flex-col items-center justify-center text-emerald-900 bg-slate-950 p-4">
-                <Lock size={48} className="mb-4 opacity-50" />
-                <p>NO TARGET LOCKED</p>
+            <div className="w-full h-full flex items-center justify-center text-emerald-500">
+                <p>No evidence loaded</p>
             </div>
-        )
+        );
     }
 
+    const targetLabel = (evidence.label || '').slice(0, 12).toUpperCase();
+
     return (
-        <div className="h-full flex flex-col bg-slate-950 font-mono p-2 select-none overflow-hidden relative">
-
-            {/* Content Overlay when Won */}
-            {gameState === 'won' && (
-                <div className="absolute inset-0 z-50 bg-slate-950/90 flex flex-col items-center justify-center p-8 animate-in fade-in duration-500">
-                    <div className="p-1 border border-emerald-500 rounded-full mb-4">
-                        <Unlock size={48} className="text-emerald-500" />
-                    </div>
-                    <h2 className="text-xl text-emerald-400 font-bold mb-2 tracking-widest">ACCESS GRANTED</h2>
-                    <div className="w-full max-w-md bg-black/50 border border-emerald-900 p-4 rounded text-xs sm:text-sm text-emerald-300 font-mono shadow-lg shadow-emerald-900/20">
-                        <div className="border-b border-emerald-900 pb-2 mb-2 text-emerald-600 uppercase text-[10px]">
-                            DECRYPTED FILE CONTENT: {evidence?.label || 'UNKNOWN_FILE'}
-                        </div>
-                        <div className="whitespace-pre-wrap leading-relaxed">
-                            {evidence?.content || ">> EMPTY FILE BUFFER <<"}
-                        </div>
-                    </div>
-                    <button
-                        onClick={resetGame}
-                        className="mt-6 text-xs flex items-center gap-2 bg-slate-900 hover:bg-slate-800 px-4 py-2 rounded border border-slate-700 text-slate-400 font-bold transition-colors"
-                    >
-                        <RefreshCw size={14} /> RELOCK SYSTEM
-                    </button>
-                </div>
-            )}
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-2 py-1 border-b border-emerald-900/50 mb-2 shrink-0">
-                <div className="flex items-center gap-2 text-emerald-500 text-xs">
-                    <Terminal size={14} />
-                    <span>REMOTE_DEBUG_TOOL // TGT: {evidence?.label?.substring(0, 12) || 'UNKNOWN'}</span>
+        <div className="w-full h-full bg-slate-950 text-emerald-500 flex flex-col font-mono">
+            {/* Header Bar */}
+            <div className="flex items-center justify-between px-3 py-2 bg-slate-900/90 border-b border-emerald-800/50 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                    <Lock className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-bold tracking-wider">
+                        REMOTE_DEBUG_TOOL // TGT: {targetLabel}
+                    </span>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={handleHelp}
-                        className="text-emerald-700 hover:text-emerald-400 transition-colors"
-                        title="Display Help"
+                        className="p-1 hover:bg-emerald-900/30 rounded transition-colors"
+                        title="Help"
                     >
-                        <HelpCircle size={14} />
+                        <HelpCircle className="w-3.5 h-3.5" />
                     </button>
-                    <div className="flex gap-1">
-                        {Array.from({ length: ATTEMPTS_ALLOWED }).map((_, i) => (
+                    <div className="flex items-center gap-1">
+                        {[...Array(ATTEMPTS_ALLOWED)].map((_, i) => (
                             <div
                                 key={i}
-                                className={`w-3 h-3 border border-emerald-500/50 ${i < attempts ? 'bg-emerald-500' : 'bg-transparent'}`}
+                                className={`w-2.5 h-2.5 border transition-all ${i < attempts
+                                    ? 'bg-emerald-500 border-emerald-500 shadow-sm shadow-emerald-500/50'
+                                    : 'bg-transparent border-emerald-800/50'
+                                    }`}
                             />
                         ))}
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 flex min-h-0 gap-4 overflow-hidden relative">
-                {/* Hex Grid Area */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-900/30 p-2 rounded border border-slate-800">
-                    <div className="grid grid-cols-[auto_1fr] gap-4 text-xs sm:text-sm leading-relaxed">
-                        {/* Hex Addresses */}
-                        <div className="flex flex-col text-emerald-700/60 font-mono select-none">
-                            {Array.from({ length: ROW_COUNT }).map((_, i) => (
-                                <span key={i}>0x{((0xF2A0) + (i * COL_COUNT)).toString(16).toUpperCase()}</span>
-                            ))}
-                        </div>
+            {/* Main Content */}
+            <div className="flex-1 flex min-h-0 overflow-hidden">
+                {/* Left Column: Hex Grid */}
+                <div className="flex-[65] p-3 flex flex-col overflow-hidden bg-black/10">
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="flex gap-2 relative">
+                            {/* Hex Addresses */}
+                            <div className="flex flex-col gap-0 text-emerald-700/70 text-[10px] leading-[1.35] flex-shrink-0 select-none">
+                                {[...Array(ROW_COUNT)].map((_, i) => {
+                                    const addr = (0xF2A0 + (i * 0x0C)).toString(16).toUpperCase();
+                                    return (
+                                        <div key={i} className="h-[1.35em] font-mono">
+                                            0x{addr}
+                                        </div>
+                                    );
+                                })}
+                            </div>
 
-                        {/* Character Grid */}
-                        <div
-                            className="flex flex-wrap content-start max-w-[24ch] font-mono tracking-[0.2em] text-emerald-500 cursor-pointer"
-                            onMouseLeave={() => { setHoveredIndex(null); setHoveredWordId(null); }}
-                        >
-                            {grid.map((cell) => {
-                                const isHovered = hoveredWordId !== null && defined(cell.wordId) && hoveredWordId === cell.wordId;
-                                const isSingleHover = hoveredWordId === null && hoveredIndex === cell.index;
+                            {/* Character Grid */}
+                            <div className={`flex flex-col gap-0 transition-opacity duration-300 ${gameState !== 'playing' ? 'opacity-40' : ''}`}>
+                                {[...Array(ROW_COUNT)].map((_, rowIdx) => (
+                                    <div key={rowIdx} className="flex gap-0 h-[1.35em] leading-[1.35]">
+                                        {[...Array(COL_COUNT)].map((_, colIdx) => {
+                                            const index = rowIdx * COL_COUNT + colIdx;
+                                            const cell = grid[index];
+                                            if (!cell) return null;
 
-                                return (
-                                    <span
-                                        key={cell.index}
-                                        className={`
-                      inline-block w-[1ch] text-center transition-colors duration-75
-                      ${(isHovered || isSingleHover) ? 'bg-emerald-500 text-slate-900 font-bold' : ''}
-                      ${cell.isWord ? 'text-emerald-300' : 'text-emerald-700'}
-                      ${gameState !== 'playing' ? 'opacity-50' : ''}
-                    `}
-                                        onMouseEnter={() => {
-                                            setHoveredIndex(cell.index);
-                                            if (cell.isWord && cell.wordId !== undefined) {
-                                                setHoveredWordId(cell.wordId);
-                                            } else {
-                                                setHoveredWordId(null);
-                                            }
-                                        }}
-                                        onClick={() => {
-                                            if (cell.isWord && cell.wordId !== undefined) {
-                                                const word = candidates[cell.wordId];
-                                                handleWordClick(word);
-                                            } else {
-                                                // Flavor click for non-words
-                                                setLogs(prev => [...prev, `> 0x${cell.char.charCodeAt(0).toString(16).toUpperCase()} ERROR`]);
-                                            }
-                                        }}
-                                    >
-                                        {cell.char}
-                                    </span>
-                                );
-                            })}
+                                            const isHovered = cell.isWord && cell.wordIndex === hoveredWordIndex;
+
+                                            return (
+                                                <span
+                                                    key={colIdx}
+                                                    onClick={() => handleCellClick(index)}
+                                                    onMouseEnter={() => handleMouseEnter(index)}
+                                                    onMouseLeave={handleMouseLeave}
+                                                    className={`
+                                                        text-[10px] cursor-pointer transition-all duration-75 select-none font-mono tracking-wider px-[1px]
+                                                        ${cell.isWord ? 'text-emerald-300' : 'text-emerald-700/60'}
+                                                        ${isHovered ? 'bg-emerald-500 text-slate-900 font-bold scale-105 shadow-sm shadow-emerald-500/50 relative z-10' : ''}
+                                                        ${gameState !== 'playing' ? 'cursor-not-allowed' : 'hover:text-emerald-200'}
+                                                    `}
+                                                >
+                                                    {cell.char}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Sidebar: Logs & Status */}
-                <div className="w-1/3 min-w-[140px] flex flex-col gap-2 shrink-0">
-
-                    {/* Status Display */}
-                    <div className={`p-2 border rounded flex flex-col items-center justify-center gap-1 min-h-[80px] transition-colors
-            ${gameState === 'won' ? 'bg-emerald-900/20 border-emerald-500' :
-                            gameState === 'lost' ? 'bg-red-900/20 border-red-500' :
-                                'bg-slate-800/20 border-emerald-900'}
-          `}>
-                        {gameState === 'playing' && <Lock size={24} className="text-emerald-600 animate-pulse" />}
-                        {gameState === 'won' && <Unlock size={24} className="text-emerald-400" />}
-                        {gameState === 'lost' && <Lock size={24} className="text-red-400" />}
-
-                        <span className={`text-xs font-bold ${gameState === 'won' ? 'text-emerald-400' :
-                                gameState === 'lost' ? 'text-red-400' : 'text-emerald-600'
-                            }`}>
-                            {gameState === 'playing' ? 'LOCKED' : gameState === 'won' ? 'UNLOCKED' : 'LOCKOUT'}
-                        </span>
-
-                        {gameState !== 'playing' && (
-                            <div className="flex gap-1 flex-wrap justify-center">
-                                <button
-                                    onClick={resetGame}
-                                    className="mt-2 text-[10px] flex items-center gap-1 bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded border border-slate-600 text-slate-300"
-                                >
-                                    <RefreshCw size={10} /> REBOOT
-                                </button>
-                                {gameState === 'won' && (
+                {/* Right Column: Status & Logs */}
+                <div className="flex-[35] border-l border-emerald-800/50 flex flex-col min-h-0 bg-black/20">
+                    {/* Status Panel */}
+                    <div className="p-3 border-b border-emerald-800/50 flex flex-col items-center gap-2 flex-shrink-0">
+                        {gameState === 'playing' && (
+                            <>
+                                <Lock className="w-6 h-6 text-emerald-600 animate-pulse" />
+                                <div className="text-emerald-600 font-bold text-xs tracking-wider">LOCKED</div>
+                            </>
+                        )}
+                        {gameState === 'won' && (
+                            <>
+                                <Unlock className="w-6 h-6 text-emerald-400" />
+                                <div className="text-emerald-400 font-bold text-xs tracking-wider">UNLOCKED</div>
+                                <div className="flex flex-col gap-1.5 mt-2 w-full">
                                     <button
-                                        onClick={handlePrintReport}
-                                        className="mt-2 text-[10px] flex items-center gap-1 bg-emerald-900/50 hover:bg-emerald-800 px-2 py-1 rounded border border-emerald-700 text-emerald-300"
+                                        onClick={handleReboot}
+                                        className="w-full px-2 py-1.5 bg-emerald-900/50 hover:bg-emerald-800/60 border border-emerald-600/50 text-emerald-300 text-[10px] rounded transition-all flex items-center justify-center gap-1.5 font-bold tracking-wide"
                                     >
-                                        <Printer size={10} /> LOG
+                                        <RotateCcw className="w-3 h-3" />
+                                        REBOOT
                                     </button>
-                                )}
-                            </div>
+                                    <button
+                                        onClick={handlePrint}
+                                        className="w-full px-2 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/60 text-emerald-200 text-[10px] rounded transition-all flex items-center justify-center gap-1.5 font-bold tracking-wide"
+                                    >
+                                        <Printer className="w-3 h-3" />
+                                        PRINT
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                        {gameState === 'lost' && (
+                            <>
+                                <Lock className="w-6 h-6 text-red-400" />
+                                <div className="text-red-400 font-bold text-xs tracking-wider">LOCKOUT</div>
+                                <button
+                                    onClick={handleReboot}
+                                    className="w-full px-2 py-1.5 mt-2 bg-emerald-900/50 hover:bg-emerald-800/60 border border-emerald-600/50 text-emerald-300 text-[10px] rounded transition-all flex items-center justify-center gap-1.5 font-bold tracking-wide"
+                                >
+                                    <RotateCcw className="w-3 h-3" />
+                                    REBOOT
+                                </button>
+                            </>
                         )}
                     </div>
 
                     {/* Log Console */}
-                    <div className="flex-1 bg-black/40 border border-slate-800 p-2 text-[10px] sm:text-xs font-mono text-emerald-400 overflow-y-auto custom-scrollbar flex flex-col">
+                    <div
+                        ref={logRef}
+                        className="flex-1 p-2 bg-black/60 overflow-y-auto text-emerald-400 text-[10px] font-mono leading-relaxed min-h-0"
+                    >
                         {logs.map((log, i) => (
-                            <div key={i} className="mb-1 break-words leading-tight opacity-80">{log}</div>
+                            <div key={i} className="mb-0.5">{log}</div>
                         ))}
-                        <div ref={logsEndRef} />
                         {gameState === 'playing' && (
-                            <div className="animate-pulse">_</div>
+                            <div className="inline-block animate-pulse">_</div>
                         )}
                     </div>
                 </div>
             </div>
+
+            {/* Win State Overlay */}
+            {false && (
+                <div
+                    className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-6"
+                    style={{
+                        animation: 'fadeIn 0.5s ease-out',
+                    }}
+                >
+                    <div
+                        className="bg-slate-900/95 border-2 border-emerald-500 rounded-lg p-6 max-w-3xl max-h-[90%] w-full shadow-2xl shadow-emerald-500/30"
+                        style={{
+                            animation: 'zoomIn 0.3s ease-out 0.3s both',
+                        }}
+                    >
+                        <div className="flex flex-col h-full">
+                            <div className="flex flex-col items-center gap-3 flex-shrink-0">
+                                <Unlock className="w-12 h-12 text-emerald-400 animate-pulse" />
+                                <h2 className="text-xl font-bold text-emerald-400 tracking-widest">
+                                    ACCESS GRANTED
+                                </h2>
+                                <p className="text-emerald-500/80 text-xs font-mono">
+                                    TARGET DEVICE: {targetLabel}
+                                </p>
+                            </div>
+
+                            <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4">
+                                <div className="text-center space-y-2">
+                                    <div className="text-emerald-200 text-sm font-bold">
+                                        AUTHORIZATION LEVEL: ADMINISTRATOR
+                                    </div>
+                                    <div className="text-emerald-500/60 text-xs max-w-md mx-auto">
+                                        Secure data partition has been mounted. Contents are ready for extraction and logging to the central evidence database.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 mt-4 flex-shrink-0">
+                                <button
+                                    onClick={handleReboot}
+                                    className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-emerald-600/50 text-emerald-300 rounded transition-all flex items-center justify-center gap-2 font-bold text-sm tracking-wide group"
+                                >
+                                    <RotateCcw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                                    RELOCK SYSTEM
+                                </button>
+                                <button
+                                    onClick={handlePrint}
+                                    className="flex-[2] px-4 py-3 bg-emerald-900 hover:bg-emerald-800 border border-emerald-500 text-emerald-100 rounded transition-all flex items-center justify-center gap-2 font-bold text-sm tracking-wide shadow-lg shadow-emerald-900/50 hover:shadow-emerald-500/20 group"
+                                >
+                                    <Printer className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                    EXTRACT & LOG DATA
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <style dangerouslySetInnerHTML={{
+                        __html: `
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                        @keyframes zoomIn {
+                            from { transform: scale(0.95); opacity: 0; }
+                            to { transform: scale(1); opacity: 1; }
+                        }
+                    `}} />
+                </div>
+            )}
         </div>
     );
 };
-
-function defined<T>(val: T | undefined): val is T {
-    return val !== undefined;
-}

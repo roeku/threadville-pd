@@ -20,6 +20,7 @@ export const EvidenceBoard: React.FC = () => {
         const t = (type || "").toUpperCase();
         if (forensicType === 'DNA') return 'dna';
         if (forensicType === 'FINGERPRINT') return 'fingerprint';
+        if (forensicType === 'DECRYPTOR') return 'decryptor';
         if (t === 'AUDIO' || forensicType === 'AUDIO') return 'spectrograph';
         if (t === 'PHOTO') return 'image_viewer';
         if (t === 'PAPER') return 'document_viewer';

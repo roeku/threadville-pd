@@ -276,6 +276,48 @@ export async function getUserStats(): Promise<{
 }
 
 /**
+ * Get resolved cases for current user
+ */
+export async function getResolvedCases(): Promise<Set<string>> {
+  const profileId = localStorage.getItem(USER_PROFILE_KEY);
+  
+  if (!profileId) return new Set();
+  
+  const { data: sessions } = await supabase
+    .from('case_sessions')
+    .select('case_id')
+    .eq('user_profile_id', profileId)
+    .eq('solved', true);
+  
+  return new Set(sessions?.map((s: any) => s.case_id) || []);
+}
+
+/**
+ * Get case stats for user
+ */
+export async function getCaseStats(caseId: string): Promise<any> {
+  const profileId = localStorage.getItem(USER_PROFILE_KEY);
+  
+  if (!profileId) return null;
+  
+  const { data: sessions } = await supabase
+    .from('case_sessions')
+    .select('*')
+    .eq('user_profile_id', profileId)
+    .eq('case_id', caseId)
+    .order('started_at', { ascending: false });
+  
+  const solvedSession = sessions?.find((s: any) => s.solved);
+  
+  return {
+    isSolved: !!solvedSession,
+    timesToComplete: sessions || [],
+    bestTime: sessions?.reduce((min: number, s: any) => Math.min(min, s.time_to_complete_seconds || Infinity), Infinity),
+    totalAttempts: sessions?.length || 0,
+  };
+}
+
+/**
  * Get detailed session report
  */
 export async function getSessionReport(sessionId: string) {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CaseFile } from '../types';
 import { ForensicDesktop } from './os/ForensicDesktop';
 

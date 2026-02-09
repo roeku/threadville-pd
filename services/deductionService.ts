@@ -195,14 +195,25 @@ export function generateDeductionRules(caseFile: CaseFile): SolutionRule[] {
 
 /**
  * Creates a DeductionState for a case, defining the puzzle rules.
+ * PRIORITY: Use pre-generated deduction rules from case file if available.
+ * FALLBACK: Generate rules dynamically if not available.
  */
 export function createDeductionState(caseFile: CaseFile): DeductionState {
-  const rules = generateDeductionRules(caseFile);
+  // PRIORITY: Use pre-generated rules if available
+  let rules: SolutionRule[] = [];
+  if (caseFile.deductionRules && caseFile.deductionRules.length > 0) {
+    console.log(`[DeductionService] Using ${caseFile.deductionRules.length} pre-generated rules from case file`);
+    rules = caseFile.deductionRules as SolutionRule[];
+  } else {
+    // FALLBACK: Generate rules dynamically
+    console.log(`[DeductionService] Generating deduction rules dynamically (case has no pre-generated rules)`);
+    rules = generateDeductionRules(caseFile);
+  }
+  
   const criticalRules = rules.filter(r => r.weight >= 1.0 && !r.isRedHerring);
-  const culpritProfile = caseFile.entities.find(e =>
-    e.id === `PROFILE-${caseFile.solution.culpritId}` ||
-    (e.label?.includes(caseFile.suspects.find(s => s.id === caseFile.solution.culpritId)?.name || '') && e.type === EvidenceType.PHOTO)
-  );
+  
+  // Find culprit profile - use culprit ID directly as per Gemini rules
+  const culpritId = caseFile.solution.culpritId;
   
   return {
     caseId: caseFile.caseId,
@@ -210,8 +221,41 @@ export function createDeductionState(caseFile: CaseFile): DeductionState {
     criticalRuleIds: criticalRules.map(r => r.id),
     culpritId: caseFile.solution.culpritId,
     weaponId: caseFile.solution.weaponId,
-    culpritProfileId: culpritProfile?.id,
+    culpritProfileId: culpritId, // Use culprit ID directly
   };
+}
+
+/**
+ * Helper to get normalized versions of an ID.
+ * Returns array including original ID and any simplifications.
+ */
+function getNormalizedIds(id: string): string[] {
+  const ids = [id];
+  
+  // Handle DECRYPT-{id}-{timestamp} -> {id}
+  // format: DECRYPT-EVID-012-170732382
+  const decryptMatch = id.match(/^DECRYPT-(EVID-\d+)(?:-\d+)?$/);
+  if (decryptMatch) {
+    ids.push(decryptMatch[1]);
+  }
+
+  // Handle DOC-FP-{id} -> {id}
+  if (id.startsWith('DOC-FP-')) {
+    ids.push(id.replace('DOC-FP-', ''));
+  }
+
+  // Handle DOC-DNA-{id} -> {id}
+  if (id.startsWith('DOC-DNA-')) {
+    ids.push(id.replace('DOC-DNA-', ''));
+  }
+
+  // Handle PROFILE-{suspectId} -> {suspectId}
+  // format: PROFILE-S2 -> S2
+  if (id.startsWith('PROFILE-')) {
+    ids.push(id.replace('PROFILE-', ''));
+  }
+  
+  return ids;
 }
 
 /**
@@ -221,52 +265,76 @@ export function validateLink(
   link: EvidenceLink,
   deductionState: DeductionState
 ): ValidationResult {
-  // Find exact match in rules
-  const exactMatch = deductionState.rules.find(r =>
-    r.source === link.fromId &&
-    r.target === link.toId &&
-    r.type === link.type
-  );
+  const fromIds = getNormalizedIds(link.fromId);
+  const toIds = getNormalizedIds(link.toId);
+  const undirectedTypes = new Set<LinkType>([LinkType.MATCHES, LinkType.LOCATES]);
 
-  if (exactMatch) {
-      console.log(`[Validate] MATCH FOUND: ${link.fromId} --${link.type}--> ${link.toId}`);
-    return {
-      isValid: true,
-      reason: exactMatch.reasoning,
-      weight: exactMatch.weight,
-    };
+  // Check all combinations of normalized IDs
+  for (const fId of fromIds) {
+    for (const tId of toIds) {
+      // Find exact match in rules
+      const exactMatch = deductionState.rules.find(r =>
+        r.source === fId &&
+        r.target === tId &&
+        r.type === link.type
+      );
+
+      if (exactMatch) {
+        console.log(`[Validate] MATCH FOUND: ${fId} --${link.type}--> ${tId} (Original: ${link.fromId}->${link.toId})`);
+        return {
+          isValid: true,
+          reason: exactMatch.reasoning,
+          weight: exactMatch.weight,
+        };
+      }
+    }
   }
 
-  // Check if user got the connection right but type wrong
-  const typeMatch = deductionState.rules.find(r =>
-    r.source === link.fromId &&
-    r.target === link.toId
-  );
+  // Check if user got the connection right but type wrong (using normalized IDs)
+  for (const fId of fromIds) {
+    for (const tId of toIds) {
+      const typeMatch = deductionState.rules.find(r =>
+        r.source === fId &&
+        r.target === tId
+      );
 
-  if (typeMatch) {
-      console.log(`[Validate] WRONG TYPE: ${link.fromId} --${link.type}--> ${link.toId} (expected ${typeMatch.type})`);
-    return {
-      isValid: false,
-      reason: `Wrong link type. This should be ${typeMatch.type}, not ${link.type}`,
-      weight: 0,
-
-    };
+      if (typeMatch) {
+         console.log(`[Validate] WRONG TYPE: ${fId} --${link.type}--> ${tId} (expected ${typeMatch.type})`);
+        return {
+           isValid: false,
+           reason: `Wrong link type. This should be ${typeMatch.type}, not ${link.type}`,
+           weight: 0,
+        };
+      }
+    }
   }
-        console.log(`[Validate] NO MATCH: ${link.fromId} --${link.type}--> ${link.toId}`);
 
+  console.log(`[Validate] NO MATCH: ${link.fromId} --${link.type}--> ${link.toId}`);
 
   // Check if connection exists in reverse direction
-  const reverseMatch = deductionState.rules.find(r =>
-    r.source === link.toId &&
-    r.target === link.fromId
-  );
+  for (const fId of fromIds) {
+    for (const tId of toIds) {
+      const reverseMatch = deductionState.rules.find(r =>
+        r.source === tId &&
+        r.target === fId
+      );
 
-  if (reverseMatch) {
-    return {
-      isValid: false,
-      reason: `Connection is reversed. It should go from ${reverseMatch.source} to ${reverseMatch.target}`,
-      weight: 0,
-    };
+      if (reverseMatch) {
+        if (reverseMatch.type === link.type && undirectedTypes.has(reverseMatch.type)) {
+          console.log(`[Validate] MATCH FOUND (UNDIRECTED): ${fId} --${link.type}--> ${tId}`);
+          return {
+            isValid: true,
+            reason: reverseMatch.reasoning,
+            weight: reverseMatch.weight,
+          };
+        }
+        return {
+          isValid: false,
+          reason: `Connection is reversed. It should go from ${reverseMatch.source} to ${reverseMatch.target}`,
+          weight: 0,
+        };
+      }
+    }
   }
 
   // Generic invalid
@@ -302,27 +370,49 @@ export function isCaseSolved(
   links: EvidenceLink[],
   deductionState: DeductionState
 ): { solved: boolean; progress: number; missing: string[] } {
-  
-  // 1. All links must be valid
+
+  const undirectedTypes = new Set<LinkType>([LinkType.MATCHES, LinkType.LOCATES]);
+
+  const findMatchingRule = (link: EvidenceLink) => {
+    const fromIds = getNormalizedIds(link.fromId);
+    const toIds = getNormalizedIds(link.toId);
+
+    for (const fId of fromIds) {
+      for (const tId of toIds) {
+        const exact = deductionState.rules.find(r =>
+          r.source === fId &&
+          r.target === tId &&
+          r.type === link.type
+        );
+        if (exact) return exact;
+
+        const reverse = deductionState.rules.find(r =>
+          r.source === tId &&
+          r.target === fId &&
+          r.type === link.type
+        );
+        if (reverse && undirectedTypes.has(reverse.type)) return reverse;
+      }
+    }
+
+    return undefined;
+  };
+
+  // 1. Require at least one valid link; invalid extras don't block solving
   const validLinks = links.filter(l => l.status === 'VALID');
-  const allValid = validLinks.length > 0 && validLinks.length === links.length;
-  
-  if (!allValid || links.length === 0) {
+
+  if (validLinks.length === 0) {
     return {
       solved: false,
       progress: 0,
-      missing: ['All connections must be correct'],
+      missing: ['Connect evidence to begin solving'],
     };
   }
 
   // 2. Must include all critical connections
   const validRuleIds = new Set<string>();
   validLinks.forEach(link => {
-    const rule = deductionState.rules.find(r =>
-      r.source === link.fromId &&
-      r.target === link.toId &&
-      r.type === link.type
-    );
+    const rule = findMatchingRule(link);
     if (rule) {
       validRuleIds.add(rule.id);
     }
@@ -351,11 +441,16 @@ export function isCaseSolved(
   }
 
   // 3. Must reach the culprit
-  const reachesCulprit = validLinks.some(link =>
-    link.toId === deductionState.culpritId ||
-    link.fromId === deductionState.culpritId ||
-    (deductionState.culpritProfileId && (link.toId === deductionState.culpritProfileId || link.fromId === deductionState.culpritProfileId))
-  );
+  const reachesCulprit = validLinks.some(link => {
+    const fromIds = getNormalizedIds(link.fromId);
+    const toIds = getNormalizedIds(link.toId);
+    return (
+      fromIds.includes(deductionState.culpritId) ||
+      toIds.includes(deductionState.culpritId) ||
+      (deductionState.culpritProfileId &&
+        (fromIds.includes(deductionState.culpritProfileId) || toIds.includes(deductionState.culpritProfileId)))
+    );
+  });
 
   if (!reachesCulprit) {
     return {
@@ -395,11 +490,7 @@ export function getDeductionHints(
   // Find next critical rule that isn't yet connected
   const connectedRuleIds = new Set<string>();
   links.forEach(link => {
-    const rule = deductionState.rules.find(r =>
-      r.source === link.fromId &&
-      r.target === link.toId &&
-      r.type === link.type
-    );
+    const rule = findMatchingRule(link);
     if (rule) {
       connectedRuleIds.add(rule.id);
     }

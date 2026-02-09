@@ -24,7 +24,7 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
     const {
         links, updateLinkType, solved,
         linkingFromId, radialMenu, setRadialMenu, deductionState,
-        currentView, setView, removeLink, solvProgress
+        currentView, setView, removeLink, solvProgress, accusationReady
     } = useGameStore();
 
     const confirmAccusation = useGameStore(state => state.confirmAccusation);
@@ -148,7 +148,7 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
         setIsDraggingAccuse(false);
 
         // If active and dropped near culprit profile, snap and confirm
-        if (!solved && solvProgress >= 40 && itemRefs?.current && deductionState?.culpritProfileId) {
+        if (!solved && itemRefs?.current && deductionState?.culpritProfileId) {
             const culpritBody = itemRefs.current[deductionState.culpritProfileId];
             if (culpritBody && groupRef.current) {
                 const p = culpritBody.translation();
@@ -165,7 +165,7 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
                 }
             }
         }
-    }, [accusePos, clampToBoard, confirmAccusation, deductionState?.culpritProfileId, itemRefs, solved, solvProgress]);
+    }, [accusePos, clampToBoard, confirmAccusation, deductionState?.culpritProfileId, itemRefs, solved]);
 
     // Track connections and handle case completion
     useEffect(() => {
@@ -365,10 +365,10 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
                 />
             )}
 
-            {/* Accusation Post-it - Always visible, activates after 40% progress */}
+            {/* Accusation Post-it - Active when all critical connections made */}
             <AccusePostIt
                 position={accusePos}
-                isActive={!solved && solvProgress >= 40}
+                isActive={accusationReady && !solved}
                 isDragging={isDraggingAccuse}
                 onConfirm={confirmAccusation}
                 onPointerDown={handleAccusePointerDown}

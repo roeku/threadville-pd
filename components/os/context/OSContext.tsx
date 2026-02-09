@@ -193,6 +193,7 @@ export const OSProvider: React.FC<{
     }, []);
 
     const toggleMaximizeWindow = useCallback((id: string) => {
+        console.log('[OSContext] toggleMaximizeWindow called:', { id }, new Error().stack);
         dispatch({ type: 'TOGGLE_MAXIMIZE_WINDOW', payload: id });
     }, []);
 
@@ -201,6 +202,7 @@ export const OSProvider: React.FC<{
     }, []);
 
     const updateWindowSize = useCallback((id: string, w: number, h: number) => {
+        console.log('[OSContext] updateWindowSize called:', { id, w, h }, new Error().stack);
         dispatch({ type: 'UPDATE_WINDOW_SIZE', payload: { id, w, h } });
     }, []);
 

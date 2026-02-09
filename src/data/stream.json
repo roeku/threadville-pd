@@ -1,0 +1,895 @@
+{
+    "title": "The Offline Takedown",
+    "caseId": "CASE-1770555649392",
+    "status": "draft",
+    "briefing": "The digital world is reeling after the shocking, live-streamed death of Alex \"Apex\" Chen, the platform's most controversial gaming personality. During his highly anticipated \"Friday Night Frag-Fest,\" viewed by over 200,000 people, Alex took a swig of his signature energy shake, gasped for air, and collapsed in his high-tech streaming booth. By the time paramedics breached the locked apartment, he was dead.\n\nPreliminary forensics indicate Alex died from acute anaphylactic shock induced by peanut oil—a substance he was deathly allergic to. The murder weapon was his own drink, prepared in the adjacent kitchen just minutes before consumption. Since the apartment was locked from the inside and only a select few had access or were present in the building, the killer is undoubtedly within his inner circle. Detectives must parse through chat logs, stream VODs, and bitter rivalries to determine who spiked the shake.",
+    "entities": [
+        {
+            "id": "EVID-002",
+            "type": "PAPER",
+            "clues": [
+                "Confirms death was caused by peanut ingestion, which the victim was known to avoid strictly."
+            ],
+            "label": "Autopsy Report: Alex Chen",
+            "content": "Medical examiner's report detailing the specific cause of death.",
+            "metadata": {
+                "fields": {
+                    "caseNumber": "ME-23-892",
+                    "dateOfDeath": "2023-10-13",
+                    "timeOfDeath": "20:42",
+                    "causeOfDeath": "Asphyxia due to Laryngeal Edema and Anaphylactic Shock",
+                    "decedentName": "Alex 'Apex' Chen",
+                    "examinerName": "Dr. Aris Chen, Chief Medical Examiner",
+                    "mannerOfDeath": "Homicide",
+                    "toxicologyNotes": "Screening of gastric contents and femoral blood returned positive for high concentrations of Arachis hypogaea (peanut) proteins and associated lipid markers. Analysis of the stomach contents matches the chemical profile of the 'Apex Fuel' supplement found at the scene, with the distinct addition of peanut oil. Routine panels for ethanol and common narcotics were negative.",
+                    "externalFindings": "The body is that of a well-nourished adult male, appearing the stated age of 26. Significant angioedema (swelling) is observed involving the lips, tongue, and periorbital regions. The tongue is swollen to approximately twice its normal size, protruding past the dentition. Diffuse erythematous urticaria (hives) is visible on the anterior neck, upper thorax, and flexor surfaces of the arms. Cyanosis is evident in the nail beds and labial mucosa. No external signs of mechanical trauma or struggle.",
+                    "internalFindings": "The laryngeal mucosa is profoundly edematous, resulting in near-total occlusion of the glottis (airway). The epiglottis is swollen and hyperemic. The trachea contains a small amount of frothy, white secretions. The lungs are heavy, congested, and edematous (Right: 650g, Left: 620g), consistent with acute respiratory failure. The stomach contains approximately 400ml of a purple, viscous liquid mixed with semi-digested matter. The gastric lining shows mild hyperemia."
+                },
+                "location": "Evidence Locker",
+                "templateId": "autopsy-report"
+            },
+            "position": [
+                -0.2689096057944564,
+                0.98,
+                -0.0457336365593054
+            ],
+            "rotation": [
+                0,
+                1.0833268973756223,
+                0
+            ],
+            "description": "Medical examiner's report detailing the specific cause of death."
+        },
+        {
+            "id": "EVID-003",
+            "type": "PHOTO",
+            "clues": [
+                "Shows the isolation of the booth and the items present on the desk at the time of death."
+            ],
+            "label": "Crime Scene: Streaming Booth",
+            "content": "[PHOTO DESCRIPTION]\n\nSubject: Interior of sound-isolated streaming booth (Location: Master Bedroom Corner, Apartment 4B)\nAngle: Wide-angle from doorway\n\nVisuals:\nThe image captures a high-end, claustrophobic gaming setup bathed in the harsh light of a forensic camera flash, which clashes with the ambient purple and green LED strips lining the desk edges. The walls are completely covered in charcoal-colored acoustic foam wedges.\n\nKey details:\n1.  **The Desk:** A custom glass-top desk holds a triple-monitor array. The center monitor shows a frozen frame of the streaming software with a \"CONNECTION LOST\" error overlay. A mechanical keyboard with missing 'W' keycap is centered.\n2.  **The Drink (Evidence Marker 1):** Located on the right side of the desk, atop a \"Chen Gaming\" mousepad, stands a translucent shaker bottle with the logo \"Apex Energy.\" The lid is unscrewed and resting next to it. The bottle contains approximately 20ml of a beige, opaque liquid. There are no other food or drink items visible on the surface.\n3.  **The Chair:** An ergonomic racing-style gaming chair is swiveled slightly to the left, pushed back against the rear padded wall, consistent with the victim sudden collapse.\n4.  **Structural Isolation:** The frame of the photo includes the heavy, industrial-grade soundproof door (currently open). The thickness of the door (approx. 4 inches) and the rubber seals around the jamb highlight the booth's airtight design intended for noise cancellation.",
+            "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770555156303-oczzz.png",
+            "metadata": {
+                "date": "2023-10-27 23:15:00",
+                "notes": "Photo documents the scene immediately post-body removal. Note the 'hermetic' nature of the booth when the door is closed; intended for audio quality, but essentially created a sealed chamber during the medical emergency. The shaker bottle (Marker 1) is the only vessel present.",
+                "author": "CSI Unit 4 - Photographer Miller",
+                "fields": {
+                    "iso": "800",
+                    "camera_model": "Nikon D6, 14mm Lens",
+                    "shutter_speed": "1/60",
+                    "evidence_markers": "1 (Shaker Bottle)"
+                },
+                "location": "Alex Chen's Apartment - Streaming Booth"
+            },
+            "position": [
+                0.28427520554656205,
+                1.06,
+                -0.0759163295300066
+            ],
+            "rotation": [
+                0,
+                -1.3568238176018732,
+                0
+            ],
+            "description": "Wide angle shot of the streaming setup where the body was found."
+        },
+        {
+            "id": "EVID-004",
+            "type": "OBJECT",
+            "clues": [
+                "The vessel used to consume the poison. Forensics will likely point to the person who prepared it (Sophie)."
+            ],
+            "label": "Shaker Cup",
+            "content": "One (1) semi-transparent plastic shaker cup, black lid, \"APEX PREDATOR\" branding.\n\nVISUAL INSPECTION:\nContains approximately 15ml of pink liquid residue at the bottom. The lid is unscrewed and resting separately. No cracks or defects observed in the plastic.",
+            "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770555198635-7ex6tn.png",
+            "metadata": {
+                "date": "2023-10-14",
+                "notes": "Chain of Custody: Recovered by Officer Miller. Delivered to Lab by Det. Vance. Seal intact.",
+                "author": "Dr. Aris Vane, Senior Toxicologist",
+                "location": "Metro City Forensic Laboratory"
+            },
+            "position": [
+                0.02802486991046136,
+                1.1400000000000001,
+                0.025007958227941163
+            ],
+            "rotation": [
+                0,
+                -0.8987851064223229,
+                0
+            ],
+            "description": "The shaker cup found on Alex's desk, containing the remnants of his pre-workout drink."
+        },
+        {
+            "id": "EVID-005",
+            "type": "FORENSIC_SAMPLE",
+            "clues": [
+                "Red Herring: Matches Sophie Jacksons. This is expected as she admits to making the drink, but makes her look guilty."
+            ],
+            "label": "Fingerprints on Shaker Cup",
+            "content": "Latent friction ridge impressions lifted from shaker cup surface using cyanoacrylate fuming.\n\nSTATUS: UNMATCHED\nACTION: Run Fingerprint Analysis",
+            "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770555236190-yj3ek.png",
+            "metadata": {
+                "forensicType": "FINGERPRINT"
+            },
+            "position": [
+                -0.3166343268840316,
+                1.22,
+                -0.17648594025647946
+            ],
+            "rotation": [
+                0,
+                1.257801370077366,
+                0
+            ],
+            "description": "Latent prints lifted from the surface of the shaker cup.",
+            "forensicData": {
+                "type": "FINGERPRINT",
+                "value": "LOOP-WHORL-LOOP",
+                "description": "Clear set of prints found on the lid and body of the shaker."
+            }
+        },
+        {
+            "id": "EVID-006",
+            "type": "OBJECT",
+            "clues": [
+                "The Murder Weapon. The source of the poison. It was introduced to the environment recently."
+            ],
+            "label": "Apex Fuel Prototype Tub",
+            "content": " ITEM DESCRIPTION:\nStandard 5lb distinct matte black plastic tub. The commercial branding is minimalist, featuring a neon green 'APEX FUEL' logo. Instead of standard nutritional facts, a white industrial adhesive label is slapped on the front, hand-written in blue sharpie: 'Prototype Batch 44 - Vanilla Velocity'.\n\nCONDITION:\nThe foil induction safety seal under the lid has been punctured and peeled back roughly halfway. The lid was found screwed on loosely. Inside, the tub contains approximately 1.5kg of fine, off-white powder.\n\nSENSORY OBSERVATION:\nThe powder emits a strong artificial vanilla scent. A shipping label fragment on the bottom indicates this was a courier delivery received earlier this morning.",
+            "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770555272593-5fkp68.png",
+            "metadata": {
+                "date": "2023-10-27",
+                "notes": "The primary murder weapon. This tub is the direct source of the allergen that induced the victim's anaphylaxis. The specific 'Prototype' labeling suggests it came from a limited source or was mocked up to look that way to bypass the victim's screening habits. It was introduced to the environment hours before the stream.",
+                "author": "CSI Unit Alpha",
+                "location": "Kitchen Counter, adjacent to blender"
+            },
+            "position": [
+                0.3888788951247329,
+                1.3,
+                0.03294089487129648
+            ],
+            "rotation": [
+                0,
+                1.445374533631734,
+                0
+            ],
+            "description": "A black tub of protein powder found on the kitchen counter, labeled 'Prototype Batch 44'."
+        },
+        {
+            "id": "EVID-007",
+            "type": "FORENSIC_SAMPLE",
+            "clues": [
+                "Crucial Evidence: Matches Victor Vane. Proves he handled the specific container that held the poison, despite not being the one to mix the drink."
+            ],
+            "label": "Fingerprints on Prototype Tub",
+            "content": "Three partial impressions lifted from the underside of the foil safety seal.\n\nSTATUS: UNMATCHED\nACTION: Run Fingerprint Analysis",
+            "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770555312491-yw6e4.png",
+            "metadata": {
+                "forensicType": "FINGERPRINT"
+            },
+            "position": [
+                -0.11690669443537419,
+                1.38,
+                0.00976534934431178
+            ],
+            "rotation": [
+                0,
+                -1.0223656046459972,
+                0
+            ],
+            "description": "Prints found on the bottom rim and lid of the powder tub.",
+            "forensicData": {
+                "type": "FINGERPRINT",
+                "value": "ARCH-LOOP-ARCH",
+                "description": "Partial but distinct prints recovered from the container surface."
+            }
+        },
+        {
+            "id": "EVID-008",
+            "type": "PAPER",
+            "clues": [
+                "Establishes the timeline. Sophie confirms she made the drink but notes Marcus brought the 'special' tub just before the stream."
+            ],
+            "label": "Witness Statement: Sophie Jackson",
+            "content": "Interview with the victim's personal assistant regarding the events of the evening.",
+            "metadata": {
+                "fields": {
+                     "body": "I didn't do this. I swear on my life! I found the new tub of 'Apex Fuel' on the kitchen island when I went to make his pre-stream shake. There was a sticky note on it that said 'PROMO SAMPLE - USE TONIGHT'. I assumed Alex put it there or ordered it specially for the stream. The seal was fresh, so I cracked it open, mixed the scoop with water, and brought it to the booth. I didn't see anyone else in the apartment, but I was in the gaming room most of the afternoon. Victor—his manager—logs say he was here earlier, but I didn't see him drop it off personally. I just did what the note said!",
+                    "name": "Sophie 'Seraph' Jackson",
+                    "header": "METROPOLITAN POLICE DEPARTMENT // VOLUNTARY WITNESS STATEMENT",
+                    "officer": "Det. R. Hargrave",
+                    "timestamp": "2023-11-10 20:45"
+                },
+                "location": "Evidence Locker",
+                "templateId": "witness-statement"
+            },
+            "position": [
+                -0.2971887384405319,
+                1.46,
+                0.04295099474997205
+            ],
+            "rotation": [
+                0,
+                -1.1341645080289646,
+                0
+            ],
+            "description": "Interview with the victim's personal assistant regarding the events of the evening."
+        },
+        {
+            "id": "EVID-009",
+            "type": "PAPER",
+            "clues": [
+                "Confirms the tub was laced with peanut flour, proving the source of the poison wasn't the mixing process, but the supply itself."
+            ],
+            "label": "Lab Analysis: Powder Residue",
+            "content": "Chemical breakdown of the powder inside the Prototype Tub.",
+            "metadata": {
+                "fields": {
+                    "date": "2023-11-05",
+                    "status": "CONCLUSIVE",
+                    "analyst": "Forensic Examiner L. Chang",
+                    "findings": "The substance identified as 'Apex Fuel' (Prototype Batch 44) contains a heterogeneous mixture of whey protein isolate and arachis hypogaea (peanut) flour. The peanut concentration is approximately 15% by volume. Crucially, the peanut flour appears to be layered primarily at the top of the container, suggesting it was introduced post-manufacture. No manufacturing defects found in control samples of Apex Fuel.",
+                    "caseNumber": "CS-2023-11-04-OT",
+                    "evidenceId": "EV-09-SUPP-TUB",
+                    "reportType": "TOXICOLOGY",
+                    "matchProbability": "100%"
+                },
+                "location": "Evidence Locker",
+                "templateId": "forensic-report"
+            },
+            "position": [
+                0.10236701264046033,
+                1.54,
+                0.18847127926152657
+            ],
+            "rotation": [
+                0,
+                -1.4133045264457562,
+                0
+            ],
+            "description": "Chemical breakdown of the powder inside the Prototype Tub."
+        },
+        {
+            "id": "EVID-010",
+            "type": "PAPER",
+            "clues": [
+                "Red Herring: Establishes a motive for Kai (Rivalry), but purely through digital threats, no physical link."
+            ],
+            "label": "Home Automation Logs",
+            "content": "Printed logs from the home automation and network gateway.",
+            "metadata": {
+                "fields": {
+                    "title": "SERVER LOG: PRIMARY RESIDENCE - 4400 STREAMLINE BLVD",
+                    "subtitle": "System Dump: SmartHomeHub_v4.2 // Network Gateway // Access Control",
+                    "entries": [
+                        "17:55:00 | SYSTEM | STATUS: Door Locked. Perimeter Secure.",
+                        "18:12:33 | USER: V_VANE (Manager_Key) | METHOD: Keypad Passcode | ACTION: UNLOCK | STATUS: SUCCESS",
+                        "18:12:45 | SENSOR | EVENT: Door Open. Hallway Motion Detected.",
+                        "18:16:10 | SYSTEM | MSG: \"Front Door Ajar\" Warning dismissed by user.",
+                        "18:44:12 | USER: V_VANE (Manager_Key) | METHOD: Keypad Passcode | ACTION: LOCK (External) | STATUS: SUCCESS",
+                        "18:58:22 | INTERCOM | CALLER: BLDG_SECURITY | MSG: \"Guest K. Tanaka denied entry at lobby. Watchlist Match.\"",
+                        "19:00:01 | SYSTEM | STATUS: Auto-Lock Engage (Stream Mode).",
+                        "----------------------------------------",
+                        "18:59:55 | NETWORK | CONNECTION: OUTBOUND | DEST: rtmp://live.twitch.tv/app",
+                        "19:00:05 | NETWORK | UPLOAD: STABLE (25,000 kbps)",
+                        "19:01:00 | NETWORK | USER: Sophie Jackson | HTTPS: ACTIVE | DOMAIN: twitch.tv/moderator_dashboard",
+                        "19:15:22 | NETWORK | USER: Sophie Jackson | ACTIVITY: HIGH | CHAT_LOG_PARSER running",
+                        "19:42:18 | NETWORK | ALERT: CONNECTION DROP | REASON: HOST_UNRESPONSIVE",
+                        "19:42:30 | NETWORK | USER: Sophie Jackson | STATUS: IDLE (No input detected)",
+                        "----------------------------------------",
+                        "18:14:20 | KITCHEN | EVENT: Refrigerator Door Opened.",
+                        "18:14:45 | KITCHEN | EVENT: Refrigerator Door Closed.",
+                        "18:55:10 | KITCHEN | EVENT: Refrigerator Door Opened (Duration: 12s).",
+                        "18:55:22 | KITCHEN | EVENT: Refrigerator Door Closed.",
+                        "19:02:00 | KITCHEN | BLENDER | STATUS: ON (High Speed) | DURATION: 45s",
+                        "19:02:46 | KITCHEN | BLENDER | STATUS: OFF"
+                    ],
+                    "footerMetadata": [
+                        {
+                            "key": "Log Checksum",
+                            "value": "SHA-256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                        },
+                        {
+                            "key": "Exported",
+                            "value": "2023-11-18 08:00:00"
+                        }
+                    ],
+                    "headerMetadata": [
+                        {
+                            "key": "Date",
+                            "value": "2023-11-17"
+                        },
+                        {
+                            "key": "Case Reference",
+                            "value": "CASE-23-8891"
+                        },
+                        {
+                            "key": "Extracted By",
+                            "value": "Det. R. Chen"
+                        }
+                    ]
+                },
+                "location": "Evidence Locker",
+                "templateId": "server-log"
+            },
+            "position": [
+                -0.11262271977031767,
+                1.62,
+                0.03970549691787023
+            ],
+            "rotation": [
+                0,
+                -1.5107886742675536,
+                0
+            ],
+            "description": "Printed logs from the smart home system."
+        },
+        {
+            "id": "EVID-011",
+            "type": "PAPER",
+            "clues": [
+                "The Boring List. Amidst hundreds of transactions, large sums are being siphoned to 'Vane Crypto Consult', a shell company owned by Victor."
+            ],
+            "label": "Bank Statement: Chen Enterprises",
+            "content": "A dense list of transactions for the last quarter.",
+            "metadata": {
+                "fields": {
+                    "bankName": "Metro City Financial",
+                    "transactions": [
+                        "2023-10-01 | Starbucks Coffee | 8.50 | DEBIT",
+                        "2023-10-05 | DIRECT DEP - CHEN ENTERPRISES | 5,000.00 | CREDIT",
+                        "2023-10-10 | ATM - Main St | 200.00 | DEBIT",
+                        "2023-10-15 | CRYPTO_LIQUIDATION_REF_99 | 850,000.00 | CREDIT",
+                        "2023-10-16 | WIRE OUT - SEYCHELLES HOLDINGS LTD | 845,000.00 | DEBIT",
+                        "2023-10-24 | Vita-Max Supplements | 120.00 | DEBIT",
+                        "2023-10-25 | Uber Technologies | 24.00 | DEBIT",
+                        "2023-10-27 | City Taxi Corp | 42.00 | DEBIT"
+                    ],
+                    "accountHolder": "Victor Vane",
+                    "accountNumber": "4490-2218-9950",
+                    "endingBalance": "$22,055.50",
+                    "startingBalance": "$12,450.00",
+                    "statementPeriod": "October 01, 2023 - October 28, 2023"
+                },
+                "location": "Evidence Locker",
+                "templateId": "bank-statement"
+            },
+            "position": [
+                0.1920425127775225,
+                1.7000000000000002,
+                -0.03306261881016398
+            ],
+            "rotation": [
+                0,
+                1.3077010771330884,
+                0
+            ],
+            "description": "A dense list of transactions for the last quarter."
+        },
+        {
+            "id": "EVID-012",
+            "type": "FORENSIC_SAMPLE",
+            "clues": [
+                "Unlocked data reveals Ryan Chen was asking for money, providing a red herring motive, but also contains an email linking Victor to the crypto scheme."
+            ],
+            "label": "Alex's Smartphone",
+            "content": "Device is biometric locked. USB Debugging enabled.\n\nSTATUS: ENCRYPTED\nACTION: Run Decryptor",
+            "transcript": "FORENSIC DATA EXTRACTION REPORT: CASE #24-889\nTARGET DEVICE: Alex Chen's Smartphone (Model: Apex X1)\nSTATUS: UNLOCKED via Biometric Override\n\n--- [SECTION 1: RECENT SMS THREADS] ---\n\nTHREAD ID: 001 - Contact: \"Ryan Chen\"\n[TIMESTAMP: Today, 14:15] Ryan: Yo, answer the phone.\n[TIMESTAMP: Today, 14:45] Ryan: I'm not asking this time, Alex. I need 5k by midnight.\n[TIMESTAMP: Today, 14:46] Alex: Dude, stop. I'm prepping for the Frag-Fest. I told you last week, no more bailouts.\n[TIMESTAMP: Today, 14:50] Ryan: You don't get it. These guys don't play. If I don't pay up, they break legs. You're sitting on millions from that energy drink deal. Help your brother out.\n[TIMESTAMP: Today, 14:55] Alex: My money is tied up in the new rig. Sell your car if you're that desperate. Don't text me during the stream.\n[TIMESTAMP: Today, 15:01] Ryan: You selfish prick. You'll regret blowing me off.\n\n--- [SECTION 2: FLAGGED EMAILS] ---\n\nMESSAGE ID: E-772\nFROM: Victor Vane <v.vane@block-strategies.net>\nTO: Alex Chen <alex.apex@streammail.com>\nDATE: Yesterday, 09:30 AM\nSUBJECT: RE: ApexCoin Launch Protocol\n\nAlex,\n\nStop worrying about the SEC. I've structured the wallet addresses so they can't be traced back to your main accounts. Here is the plan for Friday:\n\n1. You drop the \"ApexCoin\" announcement 30 minutes into the stream.\n2. My bots will wash-trade the volume to generate hype.\n3. Once the market cap hits $2M, I execute the liquidity drain (The \"Rug\").\n\nYour script is simple: You look at the crash live, scream that you've been hacked, and shut down the stream. The fans will pity you, and we walk away with the liquidity pool. Do not deviate.\n\n- Victor\n\nMESSAGE ID: E-773 (DECRYPTED FROM TRASH)\nFROM: Victor Vane <v.vane@block-strategies.net>\nTO: Alex Chen\nSUBJECT: RE: FINAL WARNING: VoidCoin Logs\n\nAlex,\n\nYou need to calm down. If you leak those wallet addresses on stream, you are admitting to federal wire fraud. That signature on the initial allocation document is yours, remember?\nStop threatening me and do your job. We can discuss the buyout tomorrow.\n\nI dropped off the new prototype 'Apex Fuel' (Batch V2) at the apartment. It's on the kitchen counter. Make sure Sophie uses THIS specific tub for the promo segment. The mixability is different, and the sponsors are watching. Do not let her use the old open container.\n\nJust stick to the script.\n- Victor\n\n--- [SECTION 3: SYSTEM NOTIFICATIONS] ---\n\n[18:48] UberEats: Your order \"Peanut-Free Protein Bowl\" from Thai Palace has been delivered.\n[18:50] SmartHome: Front Door Unlocked (User: Alex).\n[18:55] Reminder: \"EpiPen Expired - Refill Prescription\"",
+            "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770555467701-b7xgv.png",
+            "metadata": {
+                "date": "2023-10-27",
+                "notes": "Device screen was cracked but functional. Requires decryption.",
+                "author": "Det. R. Silva, Cyber Forensics",
+                "fields": {
+                    "device_model": "Apex X1 Prototype",
+                    "battery_level": "14%",
+                    "network_carrier": "GigaNet 5G"
+                },
+                "location": "Evidence Locker 4B",
+                "templateId": "server-log",
+                "forensicType": "DECRYPTOR"
+            },
+            "position": [
+                -0.05481302285446441,
+                1.78,
+                -0.204533907498891
+            ],
+            "rotation": [
+                0,
+                0.8009618681177078,
+                0
+            ],
+            "description": "The victim's personal device, locked with a passcode.",
+            "forensicData": {
+                "type": "DECRYPTOR",
+                "value": "BIOMETRIC_LOCK",
+                "description": "Smartphone data protected by biometric authentication."
+            }
+        },
+        {
+            "id": "EVID-014",
+            "type": "FORENSIC_SAMPLE",
+            "clues": [
+                "Red Herring: Matches Mrs. Higgins (Landlord). She claims she was just checking the plumbing earlier that day."
+            ],
+            "label": "DNA on Kitchen Counter",
+            "content": "Sterile swab sample collected from kitchen island surface.\n\nSTATUS: UNSEQUENCED\nACTION: Run DNA Sequencer",
+            "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770555528159-euu2sp.png",
+            "metadata": {
+                "forensicType": "DNA"
+            },
+            "position": [
+                -0.2170632444509761,
+                1.94,
+                -0.2124241059530565
+            ],
+            "rotation": [
+                0,
+                1.5434491169288438,
+                0
+            ],
+            "description": "Swab taken from the kitchen island where the drink was prepared.",
+            "forensicData": {
+                "type": "DNA",
+                "value": "GCGT-GTAG-GTTG-TATA",
+                "description": "Touch DNA found near the sink area."
+            }
+        },
+        {
+            "id": "EVID-015",
+            "type": "PAPER",
+            "clues": [
+                "Establishes Mrs. Higgins' financial motive. Alex owed three months of back rent and repeatedly refused to pay."
+            ],
+            "label": "Rent Dispute Emails: Higgins ↔ Chen",
+            "content": "Email thread documenting escalating tension over unpaid rent and eviction threats.",
+            "metadata": {
+                "fields": {
+                    "subject": "FINAL NOTICE: Eviction Proceedings Initiated",
+                    "from": "property.management@gilded-oaks.com",
+                    "to": "alex.apex@streammail.com",
+                    "date": "2023-10-20",
+                    "body": "Mr. Chen, This is your final notice before formal eviction proceedings commence. You are currently THREE MONTHS behind on rent ($9,000 owed). Despite multiple requests, you have not responded to payment demands. As landlord, I am initiating eviction as of October 27, 2023. All personal effects will be removed and auctioned to cover damages and unpaid rent. - Mrs. Patricia Higgins, Property Owner"
+                },
+                "location": "Evidence Locker",
+                "templateId": "email-printout"
+            },
+            "position": [
+                -0.05,
+                2.02,
+                0.15
+            ],
+            "rotation": [
+                0,
+                0.5,
+                0
+            ],
+            "description": "Email correspondence showing escalating rent disputes and eviction threats."
+        },
+        {
+            "id": "EVID-016",
+            "type": "PAPER",
+            "clues": [
+                "Proves Mrs. Higgins had building master access and knew about Alex's allergy (disclosed on tenant form)."
+            ],
+            "label": "Building Access & Tenant Medical Disclosure",
+            "content": "Master keycard access log and tenant health form showing allergy disclosure.",
+            "metadata": {
+                "fields": {
+                    "accessLog": "MASTER KEYCARD HOLDERS - Gilded Oaks Building 4400:\n- Alex Chen (Unit 4B) - Personal Key\n- Patricia Higgins (Property Manager) - Master Override\n- Security Guard Liam O'Connor - Emergency Key\n- Emergency Services - Locksmith Access",
+                    "medicalForm": "TENANT MEDICAL DISCLOSURE FORM\nName: Alex Chen | Unit: 4B\nAllergies: SEVERE - Peanut (anaphylactic shock risk)\nEpiPen Prescription: On file\nEmergency Contact: Ryan Chen (Brother)\nNOTE: All building staff notified of allergy for catering/maintenance purposes"
+                },
+                "location": "Evidence Locker",
+                "templateId": "internal-memo"
+            },
+            "position": [
+                0.15,
+                2.02,
+                0.1
+            ],
+            "rotation": [
+                0,
+                -0.8,
+                0
+            ],
+            "description": "Building access records and medical disclosure proving Higgins' knowledge of Alex's severe allergy."
+        },
+        {
+            "id": "EVID-017",
+            "type": "PAPER",
+            "clues": [
+                "Witness places Mrs. Higgins near the apartment during the critical time window, contradicting her alibi of being in her office."
+            ],
+            "label": "Witness Statement: Building Tenant",
+            "content": "Statement from neighbor in Unit 4A documenting suspicious activity.",
+            "metadata": {
+                "fields": {
+                    "witness": "David Morelli, Tenant Unit 4A",
+                    "date": "2023-10-27",
+                    "time": "18:30-19:15",
+                    "statement": "I was leaving my apartment around 6:10 PM (18:10) to walk my dog. I saw Mrs. Higgins in the hallway near the 4B apartment with a keycard in her hand. She seemed startled when she saw me and quickly walked toward the elevator. Later, around 7:05 PM (19:05), I heard raised voices from 4B - sounded like Alex arguing with someone, but I couldn't make out words. When I returned from my walk at 7:15 PM (19:15), I saw Mrs. Higgins leaving the hallway again and entering the stairwell. This contradicts her claim of being in the office all evening."
+                },
+                "location": "Evidence Locker",
+                "templateId": "witness-statement"
+            },
+            "position": [
+                0.22,
+                1.94,
+                -0.05
+            ],
+            "rotation": [
+                0,
+                1.2,
+                0
+            ],
+            "description": "Witness statement placing Mrs. Higgins near victim's apartment during critical timeframe."
+        },
+        {
+            "id": "EVID-018",
+            "type": "PAPER",
+            "clues": [
+                "Motive for Sophie: Shows she was owed substantial back pay and had grounds for financial desperation."
+            ],
+            "label": "Employment Contract & Payroll Records",
+            "content": "Contract showing Sophie's compensation terms and evidence of unpaid wages.",
+            "metadata": {
+                "fields": {
+                    "employerName": "Chen Gaming Enterprises / Apex Productions",
+                    "employeeName": "Sophie Jackson",
+                    "position": "Personal Assistant / Content Moderator",
+                    "contractDate": "2023-01-15",
+                    "monthlyRate": "$4,500",
+                    "unpaidMonths": "June, July, August, September, October (5 months = $22,500 owed)",
+                    "lastPaymentDate": "2023-05-31",
+                    "note": "Despite multiple requests, Alex Chen refused to process payroll, claiming 'cash flow issues.' Sophie continued working without compensation."
+                },
+                "location": "Evidence Locker",
+                "templateId": "letterhead-page"
+            },
+            "position": [
+                -0.18,
+                2.02,
+                -0.12
+            ],
+            "rotation": [
+                0,
+                -0.3,
+                0
+            ],
+            "description": "Employment records documenting five months of unpaid wages owed to Sophie."
+        },
+        {
+            "id": "EVID-019",
+            "type": "PAPER",
+            "clues": [
+                "Motive for Kai: Documents the career-destroying accusation and ongoing rivalry with Alex."
+            ],
+            "label": "Tournament Dispute: 'Cheating' Accusation Filing",
+            "content": "Official record of Alex's public accusation against Kai and its consequences.",
+            "metadata": {
+                "fields": {
+                    "incident": "ESPORTS TOURNAMENT DISPUTE - 2020",
+                    "event": "ChampionsCon 2020 - Fighting Game Tournament",
+                    "accuser": "Alex 'Apex' Chen",
+                    "accused": "Kai 'Viper' Tanaka",
+                    "allegation": "Alex publicly accused Kai of using a modded controller during semi-finals match. Alex livestreamed the accusation with 100,000+ viewers watching.",
+                    "outcome": "Kai was disqualified pending investigation. Investigation later found NO evidence of cheating. However, the public accusation permanently damaged Kai's reputation and sponsorship deals were cancelled.",
+                    "current": "Kai's career never recovered. Alex never publicly retracted the accusation. Kai has been attempting to rebuild reputation for 3+ years with limited success."
+                },
+                "location": "Evidence Locker",
+                "templateId": "news-clipping"
+            },
+            "position": [
+                -0.25,
+                1.94,
+                0.22
+            ],
+            "rotation": [
+                0,
+                1.8,
+                0
+            ],
+            "description": "Documentation of the career-destroying tournament dispute between Alex and Kai."
+        }
+    ],
+    "solution": {
+        "motive": "To silence Alex before he could whistleblow on Victor's illegal crypto scheme.",
+        "weaponId": "EVID-006",
+        "culpritId": "S2",
+        "reasoning": "While Sophie physically mixed the drink, she had no reason to kill the 'golden goose'. The poison wasn't added to the cup; it was in the source. Victor Vane delivered the *new* prototype tub immediately before the stream. He insisted Alex use that specific tub. Victor knew about the allergy. By lacing the powder beforehand, he used Sophie as an unwitting executioner and established a distance alibi for himself."
+    },
+    "deductionRules": [
+        {
+            "id": "rule_1",
+            "source": "EVID-006",
+            "target": "DOC-FP-EVID-007",
+            "type": "MATCHES",
+            "description": "Fingerprints found on the murder weapon identify the handler",
+            "weight": 1.0,
+            "reasoning": "The fingerprints on the prototype tub (found on the foil seal) prove who handled the container with the poison"
+        },
+        {
+            "id": "rule_2",
+            "source": "DOC-FP-EVID-007",
+            "target": "S2",
+            "type": "MATCHES",
+            "description": "Fingerprints on tub match Victor Vane's profile",
+            "weight": 1.0,
+            "reasoning": "Forensic analysis confirms the fingerprint pattern (ARCH-LOOP-ARCH) belongs to Victor Vane, proving he handled the murder weapon"
+        },
+        {
+            "id": "rule_3",
+            "source": "EVID-009",
+            "target": "EVID-006",
+            "type": "MATCHES",
+            "description": "Lab analysis confirms the powder was laced with peanut",
+            "weight": 1.0,
+            "reasoning": "Chemical breakdown proves the prototype tub contained intentionally added peanut flour (15% concentration), not a manufacturing defect"
+        },
+        {
+            "id": "rule_4",
+            "source": "EVID-002",
+            "target": "EVID-006",
+            "type": "MATCHES",
+            "description": "Autopsy confirms peanut was the lethal agent",
+            "weight": 1.0,
+            "reasoning": "Medical examiner's report identifies acute anaphylactic shock from peanut ingestion as cause of death, matching the poison source"
+        },
+        {
+            "id": "rule_5",
+            "source": "EVID-012",
+            "target": "S2",
+            "type": "MOTIVATES",
+            "description": "Evidence reveals Victor's motive: silencing Alex before exposure",
+            "weight": 1.0,
+            "reasoning": "Emails on Alex's phone show Victor threatened Alex over the cryptocurrency scheme (ApexCoin rug pull) and explicitly instructed Sophie to use 'THIS specific tub' - proving premeditation"
+        },
+        {
+            "id": "rule_6",
+            "source": "EVID-011",
+            "target": "S2",
+            "type": "MOTIVATES",
+            "description": "Financial transfers show Victor's financial motive",
+            "weight": 0.9,
+            "reasoning": "Bank statement shows large transfers to 'Vane Crypto Consult', Victor's shell company, establishing financial motive for the fraud and silencing Alex"
+        },
+        {
+            "id": "rule_7",
+            "source": "EVID-008",
+            "target": "S2",
+            "type": "CONTRADICTS",
+            "description": "Sophie's statement reveals Victor's suspicious actions",
+            "weight": 0.9,
+            "reasoning": "Witness statement indicates Victor delivered the 'special' tub with cryptic instructions ('Make sure Sophie uses THIS specific tub'), contradicting his claim of innocence"
+        },
+        {
+            "id": "rule_8",
+            "source": "EVID-012",
+            "target": "EVID-006",
+            "type": "MATCHES",
+            "description": "Victor's email explicitly identifies the poisoned tub",
+            "weight": 1.0,
+            "reasoning": "Email message states 'I dropped off the new prototype Apex Fuel (Batch V2)...Make sure Sophie uses THIS specific tub' - direct link between Victor, the weapon, and premeditation"
+        },
+        {
+            "id": "rule_9",
+            "source": "EVID-004",
+            "target": "EVID-006",
+            "type": "MATCHES",
+            "description": "Shaker cup was filled from the poisoned tub",
+            "weight": 0.9,
+            "reasoning": "Chain of custody: The prototype tub was the source; the shaker cup was the delivery vessel. Sophie mixed the shake from this tub, making it the direct source of the lethal dose"
+        },
+        {
+            "id": "rule_10",
+            "source": "EVID-008",
+            "target": "EVID-006",
+            "type": "MATCHES",
+            "description": "Sophie's statement confirms Victor delivered the poison tub",
+            "weight": 0.9,
+            "reasoning": "Witness confirms finding the 'new tub' with Victor's instructions, directly linking the weapon to Victor's actions"
+        },
+        {
+            "id": "rule_11",
+            "source": "EVID-003",
+            "target": "EVID-004",
+            "type": "MATCHES",
+            "description": "Crime scene photo shows the shaker cup on desk with poison residue",
+            "weight": 0.8,
+            "reasoning": "Visual documentation places the delivery vessel at the scene of death, containing the lethal drink"
+        },
+        {
+            "id": "rule_12",
+            "source": "EVID-002",
+            "target": "EVID-004",
+            "type": "MATCHES",
+            "description": "Autopsy stomach contents match the shaker cup residue",
+            "weight": 0.9,
+            "reasoning": "Medical analysis confirms the 400ml purple liquid in victim's stomach matches the chemical profile of contents in the shaker cup"
+        },
+        {
+            "id": "rule_13",
+            "source": "EVID-009",
+            "target": "EVID-002",
+            "type": "MATCHES",
+            "description": "Lab analysis corroborates autopsy findings",
+            "weight": 0.8,
+            "reasoning": "Chemical breakdown of powder (15% peanut flour) matches the toxicology analysis in the autopsy report, confirming consistent evidence"
+        },
+        {
+            "id": "rule_14",
+            "source": "EVID-010",
+            "target": "S2",
+            "type": "LOCATES",
+            "description": "Home automation logs show Victor's access during critical time window",
+            "weight": 0.8,
+            "reasoning": "Server logs document Victor's keypad entry (18:12) and exit (18:44), placing him in the apartment during hours when poison could be planted"
+        },
+        {
+            "id": "rule_15",
+            "source": "DOC-FP-EVID-005",
+            "target": "S1",
+            "type": "MATCHES",
+            "description": "Fingerprints on shaker cup match Sophie Jackson",
+            "weight": 0.5,
+            "reasoning": "Red herring - innocent explanation: Sophie's fingerprints expected as she physically mixed the drink",
+            "isRedHerring": true
+        },
+        {
+            "id": "rule_16",
+            "source": "DOC-DNA-EVID-014",
+            "target": "S4",
+            "type": "MATCHES",
+            "description": "DNA on kitchen counter matches Mrs. Higgins",
+            "weight": 0.5,
+            "reasoning": "Red herring - innocent explanation: landlord's DNA expected from earlier plumbing inspection that day",
+            "isRedHerring": true
+        },
+        {
+            "id": "rule_17",
+            "source": "EVID-010",
+            "target": "S3",
+            "type": "CONTRADICTS",
+            "description": "Home automation logs show Kai was denied entry",
+            "weight": 0.6,
+            "reasoning": "Red herring - security logs prove Kai was in lobby but denied building access, eliminating him as suspect despite rivalry motive",
+            "isRedHerring": true
+        },
+        {
+            "id": "rule_18",
+            "source": "EVID-012",
+            "target": "S5",
+            "type": "CONTRADICTS",
+            "description": "Messages show Ryan's financial desperation but no involvement in crime",
+            "weight": 0.5,
+            "reasoning": "Red herring - while Ryan has financial motive (needs $5k), his texts are from 14:15-15:01 (day before stream), well before the 20:42 death, eliminating him as suspect",
+            "isRedHerring": true
+        },
+        {
+            "id": "rule_19",
+            "source": "EVID-008",
+            "target": "S1",
+            "type": "CONTRADICTS",
+            "description": "Sophie's own statement exonerates her",
+            "weight": 0.7,
+            "reasoning": "While Sophie mixed the drink (explaining her fingerprints), her statement proves she found the tub already prepared and Victor instructed its use, establishing she was manipulated, not the killer"
+        },
+        {
+            "id": "rule_21",
+            "source": "EVID-015",
+            "target": "S4",
+            "type": "MOTIVATES",
+            "description": "Rent disputes establish Mrs. Higgins' financial motive",
+            "weight": 0.9,
+            "reasoning": "Email shows Mrs. Higgins was owed $9,000 in back rent from Alex and had initiated eviction proceedings. Eliminating Alex would recover the debt through asset seizure."
+        },
+        {
+            "id": "rule_22",
+            "source": "EVID-016",
+            "target": "S4",
+            "type": "MATCHES",
+            "description": "Master keycard access and allergy knowledge prove Mrs. Higgins' means",
+            "weight": 0.8,
+            "reasoning": "Building access records show Mrs. Higgins holds master keycard override, and medical disclosure form proves she knew Alex's severe peanut allergy - establishing both means and knowledge to poison him"
+        },
+        {
+            "id": "rule_23",
+            "source": "EVID-017",
+            "target": "S4",
+            "type": "CONTRADICTS",
+            "description": "Witness places Mrs. Higgins at apartment, contradicting her alibi",
+            "weight": 0.9,
+            "reasoning": "Neighbor witness places Mrs. Higgins with keycard near victim's apartment at 18:10 and 19:05, directly contradicting her claim of being in office all evening"
+        },
+        {
+            "id": "rule_24",
+            "source": "EVID-018",
+            "target": "S1",
+            "type": "MOTIVATES",
+            "description": "Unpaid wages establish Sophie's financial motive",
+            "weight": 0.8,
+            "reasoning": "Employment records show Sophie was owed $22,500 in unpaid wages over 5 months. While she mixed the drink (seemingly establishing guilt), this proves she had motive independent of Victor's involvement"
+        },
+        {
+            "id": "rule_25",
+            "source": "EVID-019",
+            "target": "S3",
+            "type": "MOTIVATES",
+            "description": "Tournament dispute establishes Kai's long-standing motive",
+            "weight": 0.8,
+            "reasoning": "Documentation shows Alex's false cheating accusation permanently destroyed Kai's esports career 3 years ago. Never retracted, this gives Kai lasting motive for revenge"
+        },
+        {
+            "id": "rule_26",
+            "source": "EVID-017",
+            "target": "S4",
+            "type": "LOCATES",
+            "description": "Witness places Mrs. Higgins near crime scene",
+            "weight": 0.8,
+            "reasoning": "Corroborates opportunity during critical timeframe (18:10 and 19:05), establishing Mrs. Higgins had physical access to apartment to plant poison"
+        },
+        {
+            "id": "rule_27",
+            "source": "EVID-015",
+            "target": "EVID-016",
+            "type": "MATCHES",
+            "description": "Motive + means + opportunity for Mrs. Higgins",
+            "weight": 0.9,
+            "reasoning": "Combines financial desperation (eviction threat), knowledge of allergy, master key access, and witness placing her at scene - establishing complete criminal profile"
+        }
+    ],
+    "suspects": [
+        {
+            "id": "S1",
+            "bio": "Live Moderator / Personal Assistant. Alex was mechanically abusive and owed her six months of back pay. She was the one who physically mixed the drink. Alibi: She was in the kitchen mixing the drink, then returned to her laptop in the living room.",
+            "name": "Sophie 'Seraph' Jenkins",
+            "notes": "Live Moderator / Personal Assistant",
+            "photoUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770555572082-q51wsn.jpg",
+            "bloodType": "AB+",
+            "dnaSequence": "GCGG-TTAA-GAGG-ACCC",
+            "fingerprintPattern": "LOOP-WHORL-LOOP"
+        },
+        {
+            "id": "S2",
+            "bio": "Talent Manager. Alex was threatening to expose a pump-and-dump crypto scheme that Victor had orchestrated. Alibi: Left the apartment at 18:45. In a taxi when death occurred.",
+            "name": "Victor Vane",
+            "notes": "Talent Manager",
+            "photoUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770555591331-kecnc.jpg",
+            "bloodType": "A+",
+            "dnaSequence": "TTTC-TGCT-GGAG-ATGT",
+            "fingerprintPattern": "ARCH-LOOP-ARCH"
+        },
+        {
+            "id": "S3",
+            "bio": "Rival Streamer. Alex ruined Kai's reputation by accusing him of cheating in a tournament three years ago. Alibi: Was in the building lobby trying to get upstairs to confront Alex, but was stopped by security.",
+            "name": "Kai 'Viper' Tanaka",
+            "notes": "Rival Streamer",
+            "photoUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770555611144-no70ht.jpg",
+            "bloodType": "O-",
+            "dnaSequence": "CCGT-AGGT-TTAC-TGGA",
+            "fingerprintPattern": "WHORL-LOOP-ARCH"
+        },
+        {
+            "id": "S4",
+            "bio": "Landlord. Frequent disputes with Alex over noise complaints and unpaid rent. Alibi: Claims to be in her office on the ground floor.",
+            "name": "Mrs. Higgins",
+            "notes": "Landlord",
+            "photoUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770555629034-e4o5hr.jpg",
+            "bloodType": "B-",
+            "dnaSequence": "GCGT-GTAG-GTTG-TATA",
+            "fingerprintPattern": "ARCH-WHORL-WHORL"
+        },
+        {
+            "id": "S5",
+            "bio": "Brother / Roommate. Jealousy. Ryan lived in Alex's shadow. Alibi: Claimed to be asleep in his bedroom with noise-canceling headphones on.",
+            "name": "Ryan Chen",
+            "notes": "Brother / Roommate",
+            "photoUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770555646305-cjpabg.jpg",
+            "bloodType": "AB+",
+            "dnaSequence": "TGGT-GCAT-CAGT-TAGG",
+            "fingerprintPattern": "WHORL-LOOP-ARCH"
+        }
+    ],
+    "difficulty": "Hard"
+}
