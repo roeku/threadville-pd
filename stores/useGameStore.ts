@@ -135,12 +135,20 @@ export const useGameStore = create<StoreState>((set, get) => ({
   accusationReady: false,
   setAccusationReady: (ready) => set({ accusationReady: ready }),
   confirmAccusation: () => set((state) => {
+    console.log('[Accuse] confirmAccusation called', {
+      accusationReady: state.accusationReady,
+      solved: state.solved,
+    });
+
     if (state.accusationReady) {
+      console.log('[Accuse] Accusation accepted -> solved');
       return {
         solved: true,
         accusationReady: false,
       };
     }
+
+    console.log('[Accuse] Accusation blocked (not ready)');
     return state;
   }),
   
@@ -274,6 +282,14 @@ export const useGameStore = create<StoreState>((set, get) => ({
     
     // Check if case is ready for accusation
     const solveResult = isCaseSolved(validatedLinks, state.deductionState);
+
+    console.log('[Deduction] Solve result', {
+      solved: solveResult.solved,
+      progress: solveResult.progress,
+      missing: solveResult.missing,
+      validCount: validatedLinks.filter(l => l.status === 'VALID').length,
+      totalLinks: validatedLinks.length,
+    });
     
     return {
       links: validatedLinks,

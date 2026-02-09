@@ -45,17 +45,14 @@ export default function MainMenu({ onStartCase, onOpenAdmin }: MainMenuProps) {
                     .order('created_at', { ascending: false });
 
                 if (data && Array.isArray(data)) {
-                    // Fetch resolved cases and stats
-                    const resolvedCases = await getResolvedCases();
-                    
                     const casesWithStats: CaseWithStats[] = await Promise.all(
                         data.map(async (d) => {
                             const stats = await getCaseStats(d.id);
                             return {
                                 ...d,
                                 isLocal: false,
-                                isSolved: stats.isSolved,
-                                bestTime: stats.bestTime,
+                                isSolved: stats?.isSolved ?? false,
+                                bestTime: stats?.bestTime,
                             };
                         })
                     );

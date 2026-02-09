@@ -30,6 +30,24 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
     const confirmAccusation = useGameStore(state => state.confirmAccusation);
     const { raycaster } = useThree();
 
+    // Log available refs when component mounts or deductionState changes
+    React.useEffect(() => {
+        if (itemRefs?.current && deductionState?.culpritProfileId) {
+            const availableIds = Object.keys(itemRefs.current);
+            // Try different variations of the culprit ID
+            const culpritId = deductionState.culpritProfileId;
+            const profileId = `PROFILE-${culpritId}`;
+            console.log('[Board] Item refs available', {
+                total: availableIds.length,
+                culpritId,
+                profileId,
+                hasCulpritRef: Boolean(itemRefs.current[culpritId]),
+                hasProfileRef: Boolean(itemRefs.current[profileId]),
+                allIds: availableIds,
+            });
+        }
+    }, [itemRefs, deductionState?.culpritProfileId]);
+
     const [edgesVisible, setEdgesVisible] = React.useState(false);
 
     const corkTexture = useTexture('/corkboard.jpg');
@@ -103,6 +121,11 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
         dragStartScreen.current = { x: e.clientX, y: e.clientY };
         setIsDraggingAccuse(true);
 
+        console.log('[Accuse] Pointer down', {
+            accusationReady,
+            solved,
+        });
+
         const hit = getBoardPlaneIntersection(e);
         if (!hit) return;
 
@@ -111,7 +134,7 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
             accusePos[1] - hit.y,
             0
         );
-    }, [accusePos, getBoardPlaneIntersection]);
+    }, [accusePos, accusationReady, getBoardPlaneIntersection, solved]);
 
     const handleAccusePointerMove = React.useCallback((e: any) => {
         if (!isDraggingAccuse) return;
@@ -147,25 +170,53 @@ const InvestigationBoard: React.FC<InvestigationBoardProps> = ({ itemRefs, evide
         dragStartScreen.current = null;
         setIsDraggingAccuse(false);
 
+        console.log('[Accuse] Pointer up', {
+            accusationReady,
+            solved,
+            wasDragging,
+            dragMoved: dragMoved.current,
+            hasCulprit: Boolean(deductionState?.culpritProfileId),
+        });
+
         // If active and dropped near culprit profile, snap and confirm
+        console.log('[Accuse] Checking drop conditions', {
+            notSolved: !solved,
+            hasItemRefs: Boolean(itemRefs?.current),
+            hasCulpritId: Boolean(deductionState?.culpritProfileId),
+            culpritId: deductionState?.culpritProfileId,
+        });
+
         if (!solved && itemRefs?.current && deductionState?.culpritProfileId) {
             const culpritBody = itemRefs.current[deductionState.culpritProfileId];
+            console.log('[Accuse] Got culprit body', {
+                hasCulpritBody: Boolean(culpritBody),
+                hasGroupRef: Boolean(groupRef.current),
+                culpritId: deductionState.culpritProfileId,
+            });
             if (culpritBody && groupRef.current) {
                 const p = culpritBody.translation();
                 const worldPos = new THREE.Vector3(p.x, p.y, p.z);
                 const localPos = groupRef.current.worldToLocal(worldPos.clone());
                 const target = new THREE.Vector3(localPos.x + 0.15, localPos.y + 0.12, 0.2);
                 const current = new THREE.Vector3(accusePos[0], accusePos[1], accusePos[2]);
-                if (current.distanceTo(target) < 0.35) {
+                const distance = current.distanceTo(target);
+                console.log('[Accuse] Drop distance check', {
+                    distance,
+                    threshold: 0.35,
+                    target: target.toArray(),
+                    current: current.toArray(),
+                });
+                if (distance < 0.35) {
                     const snapped = clampToBoard(target);
                     setAccusePos([snapped.x, snapped.y, snapped.z]);
-                    if (!wasDragging || dragMoved.current) {
-                        confirmAccusation();
-                    }
+                    console.log('[Accuse] Distance OK, confirming accusation');
+                    confirmAccusation();
+                } else {
+                    console.log('[Accuse] Distance too far, not confirming');
                 }
             }
         }
-    }, [accusePos, clampToBoard, confirmAccusation, deductionState?.culpritProfileId, itemRefs, solved]);
+    }, [accusePos, accusationReady, clampToBoard, confirmAccusation, deductionState?.culpritProfileId, itemRefs, solved]);
 
     // Track connections and handle case completion
     useEffect(() => {

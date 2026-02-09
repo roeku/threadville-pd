@@ -212,8 +212,9 @@ export function createDeductionState(caseFile: CaseFile): DeductionState {
   
   const criticalRules = rules.filter(r => r.weight >= 1.0 && !r.isRedHerring);
   
-  // Find culprit profile - use culprit ID directly as per Gemini rules
+  // Find culprit profile - match the PROFILE-{id} format used in App.tsx
   const culpritId = caseFile.solution.culpritId;
+  const culpritProfileId = `PROFILE-${culpritId}`;
   
   return {
     caseId: caseFile.caseId,
@@ -221,7 +222,7 @@ export function createDeductionState(caseFile: CaseFile): DeductionState {
     criticalRuleIds: criticalRules.map(r => r.id),
     culpritId: caseFile.solution.culpritId,
     weaponId: caseFile.solution.weaponId,
-    culpritProfileId: culpritId, // Use culprit ID directly
+    culpritProfileId, // Use PROFILE-{id} format to match itemRefs keys
   };
 }
 
