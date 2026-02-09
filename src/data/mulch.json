@@ -1,6 +1,6 @@
 {
         "caseId": "CASE-1770355467039",
-            "title": "The HOA Homicide: Death in the Mulch",
+            "title": "Death in the Mulch",
                 "briefing": "In the hyper-exclusive gated community of Gilded Oaks, lawn care is a religion and compliance is mandatory. At 6:00 AM this morning, Arthur 'Artie' Penhaligon, the tyrannical President of the Homeowners Association, was discovered face-down in his own award-winning, premium black mulch. Artie was notorious for patrolling the neighborhood with a ruler to measure grass height and issuing fines for infractions as minor as leaving a garden hose uncoiled.",
                     "difficulty": "Hard",
                         "suspects": [
@@ -733,6 +733,16 @@
                 "weight": 0.5,
                 "reasoning": "Red herring - old evidence: while the perfumed note does reference threats, it is dated two weeks prior to the murder, making it irrelevant to the current crime",
                 "isRedHerring": true
+            },
+            {
+                  "id": "rule_12",
+                "source": "AUD-001",
+                "target": "S2",
+                "type": "MOTIVATES",
+                "description": "Threatening voice message to bankrupt the suspect",
+                "weight": 0.9,
+                "reasoning": "Instigating evidence, clearly the victim and suspect are at odds",
+                "isRedHerring": false
             }
         ],
         "status": "draft"

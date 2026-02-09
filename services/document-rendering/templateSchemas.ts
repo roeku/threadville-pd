@@ -139,9 +139,14 @@ export const TEMPLATE_SCHEMAS: Record<string, Schema> = {
     type: Type.OBJECT,
     properties: {
       headline: { type: Type.STRING, description: "Catchy newspaper headline" },
+      subheadline: { type: Type.STRING, description: "Secondary headline providing additional context" },
       byline: { type: Type.STRING, description: "Journalist name" },
       date: { type: Type.STRING },
-      body: { type: Type.STRING, description: "The article text. Should be written in journalistic style." }
+      location: { type: Type.STRING, description: "Dateline location where the story originates" },
+      edition: { type: Type.STRING, description: "Edition name (e.g., 'Morning Edition', 'Evening Edition')" },
+      lead: { type: Type.STRING, description: "Opening paragraph (lede) summarizing the most important information" },
+      body: { type: Type.STRING, description: "The article text. Should be written in journalistic style." },
+      photoCaption: { type: Type.STRING, description: "Caption for accompanying photo" }
     },
     required: ["headline", "date", "body"]
   },
@@ -203,12 +208,17 @@ export const TEMPLATE_SCHEMAS: Record<string, Schema> = {
   "internal-memo": {
     type: Type.OBJECT,
     properties: {
+      organization: { type: Type.STRING, description: "Organization or department name (e.g., 'Metro Police Department')" },
+      department: { type: Type.STRING, description: "Sub-department or division name" },
+      memoId: { type: Type.STRING, description: "Memo reference number (e.g., 'MEM-2023-1145')" },
       from: { type: Type.STRING },
       to: { type: Type.STRING },
       date: { type: Type.STRING },
       subject: { type: Type.STRING },
       body: { type: Type.STRING, description: "Professional or secretive internal communication." },
-      watermark: { type: Type.STRING, enum: ["CONFIDENTIAL", "DRAFT", "URGENT", "TOP SECRET"] }
+      watermark: { type: Type.STRING, enum: ["CONFIDENTIAL", "DRAFT", "URGENT", "TOP SECRET"] },
+      cc: { type: Type.STRING, description: "Carbon copy recipients (comma-separated names)" },
+      attachments: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of attached document names" }
     },
     required: ["from", "to", "body"]
   },
@@ -236,6 +246,24 @@ export const TEMPLATE_SCHEMAS: Record<string, Schema> = {
       assignedTeam: { type: Type.ARRAY, items: { type: Type.STRING } }
     },
     required: ["caseNumber", "title"]
+  },
+  "letterhead-page": {
+    type: Type.OBJECT,
+    properties: {
+      headerStr: { type: Type.STRING, description: "Organization name for letterhead" },
+      subheader: { type: Type.STRING, description: "Tagline or establishment date" },
+      sender: { type: Type.STRING, description: "Person sending the letter" },
+      recipient: { type: Type.STRING, description: "Primary recipient name" },
+      recipientLines: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Additional recipient lines (title, address)" },
+      date: { type: Type.STRING },
+      subject: { type: Type.STRING, description: "Letter subject line" },
+      reference: { type: Type.STRING, description: "Reference number or contract ID" },
+      body: { type: Type.STRING, description: "Main letter content in formal business style" },
+      enclosures: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of enclosed documents" },
+      contactLine: { type: Type.STRING, description: "Contact information line" },
+      footer: { type: Type.STRING, description: "Footer text with address or company info" }
+    },
+    required: ["body"]
   },
   "crime-scene-sketch": {
     type: Type.OBJECT,

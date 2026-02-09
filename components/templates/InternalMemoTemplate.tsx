@@ -5,12 +5,17 @@ import React from 'react';
 
 interface InternalMemoProps {
     data: {
+        organization?: string;
+        department?: string;
+        memoId?: string;
         from: string;
         to: string;
         date: string;
         subject: string;
         body: string;
         watermark?: string;
+        cc?: string;
+        attachments?: string[];
     };
 }
 
@@ -28,13 +33,27 @@ export const InternalMemoTemplate: React.FC<InternalMemoProps> = ({ data }) => {
             )}
 
             {/* Header */}
-            <div className="text-center border-b-4 border-black pb-4 mb-8">
-                <h1 className="text-4xl font-bold uppercase tracking-widest">Memorandum</h1>
-                <div className="text-sm mt-2 uppercase tracking-wide">Internal Use Only</div>
+            <div className="border-b-4 border-black pb-4 mb-8">
+                <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                        <div className="text-xs uppercase tracking-[0.25em] text-gray-600">{data.organization || 'Internal Affairs Division'}</div>
+                        {data.department && (
+                            <div className="text-xs uppercase tracking-[0.2em] text-gray-500">{data.department}</div>
+                        )}
+                    </div>
+                    <div className="text-right text-xs uppercase tracking-widest text-gray-600">
+                        <div>Memo ID: {data.memoId || 'N/A'}</div>
+                        <div className="mt-1">{data.date}</div>
+                    </div>
+                </div>
+                <div className="text-center mt-6">
+                    <h1 className="text-4xl font-bold uppercase tracking-widest">Memorandum</h1>
+                    <div className="text-sm mt-2 uppercase tracking-wide">Internal Use Only</div>
+                </div>
             </div>
 
             {/* To/From Block */}
-            <div className="mb-12 space-y-4 text-lg">
+            <div className="mb-10 space-y-4 text-lg">
                 <div className="grid grid-cols-[100px_1fr]">
                     <span className="font-bold uppercase">To:</span>
                     <span>{data.to}</span>
@@ -58,8 +77,23 @@ export const InternalMemoTemplate: React.FC<InternalMemoProps> = ({ data }) => {
                 {data.body}
             </div>
 
+            {(data.cc || (data.attachments && data.attachments.length > 0)) && (
+                <div className="mt-8 text-sm space-y-2">
+                    {data.cc && (
+                        <div>
+                            <span className="font-bold uppercase">CC:</span> {data.cc}
+                        </div>
+                    )}
+                    {data.attachments && data.attachments.length > 0 && (
+                        <div>
+                            <span className="font-bold uppercase">Attachments:</span> {data.attachments.join(', ')}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Initials */}
-            <div className="mt-12 font-script text-3xl opacity-80 text-blue-900 transform -rotate-6 w-32 ml-auto mr-12 text-center">
+            <div className="mt-10 font-script text-3xl opacity-80 text-blue-900 transform -rotate-6 w-32 ml-auto mr-12 text-center">
                 {data.from.split(' ').map(n => n[0]).join('')}
             </div>
         </div>

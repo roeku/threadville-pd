@@ -35,6 +35,7 @@ import {
     CrimeSceneSketchData,
     HandwrittenNoteData,
     InternalMemoData,
+    LetterheadPageData,
     ForensicReportData,
     ServerLogData,
     CaseCompletionData
@@ -263,9 +264,14 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateDefinition> = {
         render: ({ getValue, getTitleFallback, getBodyFallback }) => {
             const newsData: NewsClippingData = {
                 headline: getValue('headline', getTitleFallback()),
+                subheadline: getValue('subheadline', undefined),
                 byline: getValue('byline', "Staff Writer"),
                 date: getValue('date', "Today"),
-                body: getValue('body', getBodyFallback())
+                location: getValue('location', undefined),
+                edition: getValue('edition', undefined),
+                lead: getValue('lead', undefined),
+                body: getValue('body', getBodyFallback()),
+                photoCaption: getValue('photoCaption', undefined)
             };
             return <NewsClippingTemplate data={newsData} />;
         }
@@ -311,24 +317,35 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateDefinition> = {
     'internal-memo': {
         render: ({ getValue, getTitleFallback, getBodyFallback }) => {
             const memoData: InternalMemoData = {
+                organization: getValue('organization', undefined),
+                department: getValue('department', undefined),
+                memoId: getValue('memoId', undefined),
                 from: getValue('from', "Unknown"),
                 to: getValue('to', "Unknown"),
                 date: getValue('date', "Unknown"),
                 subject: getValue('subject', getTitleFallback()),
                 body: getValue('body', getBodyFallback()),
-                watermark: getValue('watermark', undefined)
+                watermark: getValue('watermark', undefined),
+                cc: getValue('cc', undefined),
+                attachments: getValue('attachments', undefined)
             };
             return <InternalMemoTemplate data={memoData} />;
         }
     },
     'letterhead-page': {
-        render: ({ getValue }) => {
+        render: ({ getValue, getBodyFallback }) => {
             return <LetterheadPageTemplate data={{
-                headerStr: getValue('header', "Organization"),
-                body: getValue('body', "No content."),
+                headerStr: getValue('headerStr', getValue('header', "Organization")),
+                subheader: getValue('subheader', undefined),
+                body: getValue('body', getBodyFallback()),
                 sender: getValue('sender', "Sender"),
-                recipient: getValue('recipient', "Recipient"),
+                recipient: getValue('recipient', undefined),
+                recipientLines: getValue('recipientLines', undefined),
                 date: getValue('date', undefined),
+                subject: getValue('subject', undefined),
+                reference: getValue('reference', undefined),
+                enclosures: getValue('enclosures', undefined),
+                contactLine: getValue('contactLine', undefined),
                 footer: getValue('footer', undefined)
             }} />;
         }

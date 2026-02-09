@@ -1,0 +1,585 @@
+{
+    "title": "The Silent Pact",
+    "caseId": "CASE-1770644814820",
+    "status": "draft",
+    "briefing": "Detective, we have a grim situation in the upscale Uptown district. Jessica Lin, a 27-year-old marketing executive, was found dead in her apartment this morning by her cleaning service. The initial coroner's report suggests poisoning via a tainted bottle of Pinot Noir found on her coffee table. There were no signs of forced entry, suggesting she knew her killer and likely invited them in.\n\nBackground checks reveal a dark history. Jessica was part of a close-knit group in high school that fractured ten years ago following a scandal involving her friend, Emily Vance. Emily was sexually assaulted at a graduation party while her friends—including Jessica—allegedly stood by and did nothing to intervene. Emily Vance died of a drug overdose just two weeks ago, and her funeral was held yesterday. We believe Jessica's murder is directly tied to these past events. You need to parse through the alibis of those who attended the funeral and had unresolved business with the victim.",
+    "entities": [
+        {
+            "id": "DOC-AUTOPSY",
+            "type": "PAPER",
+            "clues": [
+                "Establishes Time of Death between 8:30 PM and 9:30 PM. Cause of death is Potassium Cyanide ingestion. Stomach contents include high-end Pinot Noir."
+            ],
+            "label": "Coroner's Report: Jessica Lin",
+            "content": "Official autopsy report detailing cause and time of death.",
+            "metadata": {
+                "fields": {
+                    "caseNumber": "ME-23-9042-JL",
+                    "dateOfDeath": "October 14, 2023",
+                    "timeOfDeath": "21:00 EST (Approximate)",
+                    "causeOfDeath": "Acute Cyanide Intoxication",
+                    "decedentName": "Jessica Lin",
+                    "examinerName": "Dr. Alan Sterling, Chief Medical Examiner",
+                    "mannerOfDeath": "Homicide",
+                    "toxicologyNotes": "Femoral blood analysis indicates a Blood Alcohol Concentration (BAC) of 0.05%. Toxicity screening returned a positive result for Cyanide. Quantitative analysis confirms a lethal blood cyanide concentration of 5.2 mg/L. Gastric content analysis confirms the presence of high concentrations of cyanide salts mixed with ethanol.",
+                    "externalFindings": "The body is that of a well-nourished, well-developed adult female, appearing consistent with the stated age of 27. Rigor mortis is fully established. Livor mortis is fixed and presents with a distinct, atypical bright cherry-red coloration across the posterior surfaces. There is no evidence of blunt force trauma, ligature marks, or defensive wounds on the hands or forearms. A small amount of white-pink foam is visible at the nostrils and mouth. A faint odor resembling bitter almonds was noted upon opening the oral cavity.",
+                    "internalFindings": "The gastric contents include approximately 200ml of dark red fluid consistent with red wine. The gastric mucosa displays signs of acute chemical corrosion and hemorrhagic gastritis. The lungs are heavy and congested, exhibiting severe pulmonary edema with frothy hemorrhagic fluid in the trachea and bronchi. The heart is normal in size, but the blood within the chambers and vessels is notably bright red and unclotted. The brain shows signs of acute cerebral edema."
+                },
+                "location": "Evidence Locker",
+                "templateId": "autopsy-report"
+            },
+            "position": [
+                0.012386251903453617,
+                0.9,
+                -0.1126442757874917
+            ],
+            "rotation": [
+                0,
+                0.25068051860881824,
+                0
+            ],
+            "description": "Official autopsy report detailing cause and time of death."
+        },
+        {
+            "id": "OBJ-WINE-BOTTLE",
+            "type": "OBJECT",
+            "clues": [
+                "The murder weapon. Fingerprints found on the neck of the bottle belong to the killer, suggesting they poured the wine."
+            ],
+            "label": "Tainted Bottle of Pinot Noir",
+            "content": "FORENSIC LABORATORY REPORT\n\nCASE FILE: 2024-0412-JL\nITEM ID: OBJ-WINE-BOTTLE\nSUBMITTED BY: Officer K. Miller\nDATE: October 14, 2024\n\nITEM DESCRIPTION:\nOne (1) 750ml bottle of 'Domaine Drouhin' Pinot Noir, 2016 Vintage. The bottle is uncorked and approximately 65% full. No sediment observed.\n\nTOXICOLOGY ANALYSIS:\nChemical analysis of the liquid contents reveals a lethal concentration of Potassium Cyanide (KCN) dissolved within the wine. \n- Cyanide Concentration: 450 mg/L\n- Lethality: High. Consumption of a single standard serving (150ml) constitutes a fatal dose.\n\nDACTYLOSCOPY (FINGERPRINT) EXAMINATION:\nThe glass surface was processed using cyanoacrylate (superglue) fuming followed by Rhodamine 6G dye staining. \n\nFindings:\n1. Body of Bottle: Smudged, unidentifiable partials.\n2. Neck of Bottle: A distinct set of latent friction ridge impressions was recovered from the upper neck, consistent with the grip mechanics of pouring the beverage.\n\nPattern Analysis:\nThe recovered latent print displays a specific configuration identified as LOOP-LOOP-WHORL. \n\nCOMPARISON RESULTS:\nThe ridge characteristics (minutiae) were compared against the elimination prints and suspect exemplars collected for this case.\n\n> MATCH CONFIRMED: MARGARET VANCE\n\nCONCLUSION:\nThe evidence suggests the subject, Margaret Vance, handled the bottle by the neck, likely to pour the poisoned wine.",
+            "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770644341782-2dcb0l.png",
+            "metadata": {
+                "forensicType": "FINGERPRINT"
+            },
+            "position": [
+                -0.2912962015842527,
+                0.98,
+                0.158851468921742
+            ],
+            "rotation": [
+                0,
+                -0.5066392328683741,
+                0
+            ],
+            "description": "A bottle of vintage Pinot Noir found on the coffee table. Analysis confirms it is laced with Cyanide.",
+            "forensicData": {
+                "type": "FINGERPRINT",
+                "value": "LOOP-LOOP-WHORL",
+                "description": "Latent prints recovered from the bottle neck match Margaret Vance."
+            }
+        },
+        {
+            "id": "DOC-SERVER-LOGS",
+            "type": "PAPER",
+            "clues": [
+                "Disproves Margaret's alibi. At 20:05, User ID 'M_Vance_Host' status changes: 'Mic_Input: Disabled' and 'Audio_Source: Local_File_Silence_Loop.wav'. She wasn't there; a recording was playing."
+            ],
+            "label": "Zoom Server Connection Logs",
+            "content": "Technical server logs from the 'Grief Support Group' meeting hosted by Margaret Vance on the night of the murder. A dense, boring list of connection packets.",
+            "metadata": {
+                "source": "ConnectMe Video Services - User Session Audit #MV-8821",
+                "timestampRange": "19:55:00 - 22:02:00 UTC-5",
+                "entries": [
+                    "[19:55:12] USER: mvance_griefsupport | IP: 68.142.xx.xx (Residential/Comcast) | EVENT: Authentication Success",
+                    "[19:55:18] ROOM CREATED: 'Healing Circle Weekly' | HOST: Margaret Vance",
+                    "[20:00:01] MEETING START | 12 Participants Joined | Stream Status: Video (ON - 1080p), Audio (ON - Mic Array 1)",
+                    "[20:05:15] HOST CONFIGURATION CHANGE | VIDEO_STREAM: OFF | AUDIO_INPUT: Switched to Virtual Audio Cable",
+                    "[20:05:18] FILE LOADED: meditative_silence_loop.wav injected into audio stream",
+                    "[20:05:22] SYSTEM FLAG: User biometric tracking lost | No face/voice modulation detected | Bitrate flatline",
+                    "[20:05:30] LOG DURATION: 1h 49m 30s | INPUT STATUS: Zero peripheral interaction (Mouse/Keyboard IDLE)",
+                    "[20:05:35] NETWORK TRAFFIC: Consistent upload packet size matching audio loop file size",
+                    "[21:00:00] SYSTEM PING: 'Are you there?' check sent to Host Client",
+                    "[21:00:02] HOST CLIENT: No response | Do Not Disturb mode enabled at 20:04:50",
+                    "[21:58:12] INPUT DETECTED: Mouse cursor movement registered",
+                    "[21:58:15] AUDIO SOURCE: Switched back to Default Microphone",
+                    "[22:00:05] HOST COMMAND: 'End Meeting for All' issued",
+                    "[22:00:08] SESSION CLOSED | Log file sealed | Log ID: SYS-AUDIT-99284",
+                    "[22:00:10] DATA INTEGRITY: VERIFIED SHA-256 | Date Generated: October 26, 2023",
+                    "[22:00:12] SERVER NODE: US-EAST-VA-04 | Ref Case: LIN-HOMICIDE-2023 | Requestor: Cyber Forensics Unit / NPD"
+                ],
+                "location": "Evidence Locker",
+                "templateId": "server-log"
+            },
+            "position": [
+                0.2940125800525767,
+                1.06,
+                -0.1867984139888222
+            ],
+            "rotation": [
+                0,
+                -0.3679491815873364,
+                0
+            ],
+            "description": "Technical server logs from the 'Grief Support Group' meeting hosted by Margaret Vance on the night of the murder. A dense, boring list of connection packets."
+        },
+        {
+            "id": "OBJ-WINE-GLASS-GUEST",
+            "type": "FORENSIC_SAMPLE",
+            "clues": [
+                "Saliva found on the rim allows for DNA profiling of the guest."
+            ],
+            "label": "Second Wine Glass",
+            "content": "FORENSIC BIOLOGY REPORT\nCASE REF: The Silent Pact\nEVIDENCE ID: OBJ-WINE-GLASS-GUEST\n\nITEM DESCRIPTION:\nA standard crystal wine glass recovered from the living room coffee table, specifically the coaster positioned directly across from the victim. The glass contains a minimal amount of red liquid residue.\n\nTOXICOLOGY ANALYSIS:\nSample ID: TOX-WG-02\nThe residue was screened for the poison identified in the victim's autopsy.\nRESULT: NEGATIVE. The liquid is untainted Pinot Noir.\n\nDNA ANALYSIS:\nSample ID: BIO-WG-02\nA swab was collected from the upper rim of the glass to test for saliva and epithelial transfer.\nRESULT: POSITIVE. A full STR profile was generated from the recovered biological material.\n\nSEQUENCE MARKER:\nCAGG-GGGG-GCAA-ATCA\n\nDATABASE MATCH:\nThe profile matches the reference sample for MARGARET VANCE.",
+            "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770644412898-ye290gl.png",
+            "metadata": {
+                "forensicType": "DNA"
+            },
+            "position": [
+                -0.08061607911300213,
+                1.1400000000000001,
+                -0.0429443460410977
+            ],
+            "rotation": [
+                0,
+                1.5349870665334953,
+                0
+            ],
+            "description": "A wine glass found on the coaster opposite the victim. It contains traces of untainted wine.",
+            "forensicData": {
+                "type": "DNA",
+                "value": "CAGG-GGGG-GCAA-ATCA",
+                "description": "Epithelial cells match Margaret Vance."
+            }
+        },
+        {
+            "id": "DOC-EMAIL-MARCUS",
+            "type": "PAPER",
+            "clues": [
+                "Red Herring. Marcus threatens Jessica saying 'If you talk about that night, you'll regret it,' providing a strong motive, but his gym alibi stands."
+            ],
+            "label": "Printout of Angry Email",
+            "content": "An email chain between Jessica and Marcus Thorne found on Jessica's desk.",
+            "metadata": {
+                "fields": {
+                    "to": "Jessica Lin <jess.lin@stratosphere-marketing.com>",
+                    "body": "Jessica,\n\nThank you for the email. I admit, seeing you, Chloe, and Sarah at the funeral yesterday brought up a lot of painful memories. For a long time, I blamed you girls for what happened to Emily. But standing by her grave, I realized that holding onto this bitterness is only destroying me, just as it destroyed her.\n\nI want to move forward. I found a bottle of vintage Pinot Noir in the cellar—it was Emily's favorite. I can't bring myself to drink it alone, and I think she would have wanted us to finally bury the hatchet.\n\nI have a virtual grief support session starting at 8:00 PM, but I'm just hosting the intro. I can slip away for a bit while they do the meditation exercise. Would it be alright if I dropped by your apartment around 8:30 PM? Just to share a glass and say a proper goodbye to the past.\n\nPlease let me know.\n\nSincerely,\nMargaret\n\n________________________________\nFrom: Jessica Lin <jess.lin@stratosphere-marketing.com>\nSent: Thursday, October 12, 2:15 PM\nTo: Margaret Vance <mvance.hope@metromail.com>\nSubject: Yesterday's service\n\nDear Mrs. Vance,\n\nI wanted to reach out again to say how sorry I am. I know my presence at the funeral might have been unwelcome, but I truly loved Emily once. I wish things had gone differently back then. I hope you can find some peace.\n\n- Jess",
+                    "date": "Thursday, October 12, 4:45 PM",
+                    "from": "Margaret Vance <mvance.hope@metromail.com>",
+                    "subject": "Re: Yesterday's service / A peace offering",
+                    "attachments": []
+                },
+                "location": "Evidence Locker",
+                "templateId": "email-printout"
+            },
+            "position": [
+                -0.23255857135622027,
+                1.22,
+                -0.02299614326916255
+            ],
+            "rotation": [
+                0,
+                -0.005202935087359693,
+                0
+            ],
+            "description": "An email chain between Jessica and Marcus Thorne found on Jessica's desk."
+        },
+        {
+            "id": "OBJ-CIGARETTE",
+            "type": "FORENSIC_SAMPLE",
+            "clues": [
+                "Red Herring. Places Sarah O'Connell at the scene recently, but police timeline suggests this was days old due to weather degradation."
+            ],
+            "label": "Cigarette Butt on Balcony",
+            "content": "FORENSIC LABORATORY REPORT\nCASE REF: 24-UPT-8902\nITEM ID: OBJ-CIGARETTE\n\nEVIDENCE DESCRIPTION:\nOne (1) discarded cigarette filter, brand 'Vogue Menthol'. Recovered from the exterior balcony of the victim's apartment, lodged between the decking and a potted plant.\n\nPHYSICAL CONDITION ANALYSIS:\nThe object exhibits signs of significant environmental degradation. The paper wrapper is swollen and peeling, and the filter fibers are stiffened with water damage. Meteorological cross-referencing indicates heavy rainfall occurred in the Uptown district approximately 48 to 72 hours prior to the estimated time of death. The physical state of the evidence suggests it was exposed to this specific weather event.\n\nCONCLUSION ON TIMELINE:\nWhile the evidence places the donor at the scene, the degradation is inconsistent with fresh deposition. The cigarette was likely discarded 2-3 days prior to the murder.\n\nBIOLOGICAL ANALYSIS:\nTrace epithelial cells were retrieved from the filter paper. Despite environmental weathering, sufficient nuclear DNA was extracted for PCR amplification.\n\nDNA PROFILE EXTRACTED:\nTGAA-CAGG-TGTG-GTGG\n\nDATABASE MATCH:\nSubject: Sarah O'Connell",
+            "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770644474785-c5cqq8.png",
+            "metadata": {
+                "forensicType": "DNA"
+            },
+            "position": [
+                -0.04998507660992449,
+                1.3,
+                0.10878495688746231
+            ],
+            "rotation": [
+                0,
+                -1.5457115567893422,
+                0
+            ],
+            "description": "A cigarette butt found on the victim's balcony.",
+            "forensicData": {
+                "type": "DNA",
+                "value": "TGAA-CAGG-TGTG-GTGG",
+                "description": "DNA matches Sarah O'Connell."
+            }
+        },
+        {
+            "id": "AUD-VOICEMAIL",
+            "type": "AUDIO",
+            "clues": [
+                "Establishes intent to visit. Margaret frames the visit as a 'peace offering' to discuss Emily's funeral arrangements."
+            ],
+            "label": "Voicemail from Margaret",
+            "content": "[AUTOMATED VOICE]: Message received yesterday at 6:02 PM.\n\n[BEEP]\n\n[MARGARET]: Hey Jess... it’s Margaret. Look, I know things got a little heated at the wake yesterday. I really don’t want us to leave things like that, not after everything with Emily. \n\nI was hoping I could swing by later? Maybe around 7:30 or 8:00? I still have those invoices for the funeral arrangements we need to go over—I don’t want you handling the costs alone. \n\nAnd, look... I’ll bring a peace offering. I picked up a bottle of that Pinot Noir we used to steal from your dad's cabinet back in high school. Kind of a morbid toast to old times, I guess? \n\nAnyway, call me back if that works. I really think we need to clear the air before the lawyers get involved. Bye.\n\n[CLICK]",
+            "metadata": {
+                "date": "October 24, 2023",
+                "transcript": "[AUTOMATED VOICE]: Message received yesterday at 6:02 PM.\n\n[MARGARET]: Hey Jess... it's Margaret. Look, I know things got a little heated at the wake yesterday. I really don't want us to leave things like that, not after everything with Emily. I was hoping I could swing by later? Maybe around 7:30 or 8:00? I still have those invoices for the funeral arrangements we need to go over. I'll bring a peace offering - that Pinot Noir we used to steal back in high school. Call me back if that works. I really think we need to clear the air. Bye.",
+                "notes": "Evidence #AUD-VOICEMAIL. Audio file extracted from victim's cloud backup. Caller ID confirms number belongs to Margaret Vance.",
+                "author": "Margaret Vance",
+                "location": "Jessica Lin's iPhone 14 Pro - Voicemail Inbox"
+            },
+            "position": [
+                -0.22410273032694913,
+                1.38,
+                -0.04051749012103617
+            ],
+            "rotation": [
+                0,
+                -1.337899672100014,
+                0
+            ],
+            "description": "A voicemail left on Jessica's phone at 6:00 PM the night of the murder."
+        },
+        {
+            "id": "DOC-WITNESS-MARGARET",
+            "type": "PAPER",
+            "clues": [
+                "Margaret claims she was hosting a Zoom meeting from 8:00 PM to 10:00 PM. She emphasizes that she 'never left the screen'. This contradicts the server logs."
+            ],
+            "label": "Witness Statement: Margaret Vance",
+            "content": "Formal statement given to police the morning after the body was found.",
+            "metadata": {
+                "fields": {
+                    "body": "I attended the 'Healing Hearts' virtual support group last night that Margaret Vance hosted. I felt I should mention something odd because you asked about her whereabouts. The session started at 8:00 PM sharp. Margaret was there, but she looked extremely agitated, barely making eye contact with the camera. At about 8:05 PM, she claimed she was 'too emotional' to lead the discussion. She turned off her video and muted her microphone, telling us to meditate to a prerecorded audio track of ocean waves she started playing. The screen was black for almost two hours. She didn't turn her camera back on until right before 10:00 PM to end the call. When she came back, she seemed different—calmer, almost cold. Honest to God, she could have been anywhere during that blackout period; nobody saw or heard her from 8:05 to 9:55.",
+                    "name": "Brenda Miller",
+                    "header": "UPTOWN DISTRICT POLICE DEPARTMENT - VOLUNTARY WITNESS STATEMENT",
+                    "officer": "Det. J. Malone",
+                    "timestamp": "June 15, 2023 - 09:15 AM"
+                },
+                "location": "Evidence Locker",
+                "templateId": "witness-statement"
+            },
+            "position": [
+                0.13695953578085981,
+                1.46,
+                -0.14922716964612254
+            ],
+            "rotation": [
+                0,
+                1.170137951196689,
+                0
+            ],
+            "description": "Formal statement given to police the morning after the body was found."
+        },
+        {
+            "id": "OBJ-FIBERS",
+            "type": "OBJECT",
+            "clues": [
+                "The fibers are a match for a distinctive cashmere shawl owned by Margaret Vance, proving she sat there recently."
+            ],
+            "label": "Blue Fabric Fibers",
+            "content": "METRO CITY POLICE DEPARTMENT\nFORENSIC SERVICES DIVISION\nTRACE EVIDENCE UNIT\n\nREPORT OF EXAMINATION\n\nCASE NUMBER: MC-2023-8941\nDATE: October 25, 2023\nEXAMINING ANALYST: Dr. Aris Thorne\n\nEVIDENCE SUBMITTED:\nItem #4 (OBJ-FIBERS): Adhesive tape lift containing debris from the victim's living room sofa (beige upholstery).\n\nREFERENCE SAMPLE:\nItem #9: Navy Blue Cashmere Shawl recovered from the residence of Margaret Vance.\n\nEXAMINATION REQUESTED:\nDetermine the nature of the fibers found on Item #4 and compare with Reference Item #9.\n\nMETHODOLOGY:\n- Stereomicroscopy for initial sorting.\n- Polarized Light Microscopy (PLM) for fiber identification.\n- Microspectrophotometry (MSP) for color analysis.\n\nFINDINGS:\n1. Microscopic Examination (PLM):\n   - The adhesive lift from the beige sofa (Item #4) contained clusters of dark blue fibers foreign to the upholstery.\n   - Analysis reveals these are natural protein fibers exhibiting scale patterns distinctive to Cashmere wool (Capra hircus).\n   - Mean fiber diameter is approximately 14.5 microns, indicating high-grade textile quality.\n\n2. Microspectrophotometry (MSP):\n   - Spectral analysis of the blue dye in the recovered fibers shows a specific absorption curve peaking at 620nm.\n   - This dye profile is chemically indistinguishable from the dye composition of Reference Item #9 (Vance Shawl).\n\nCONCLUSION:\nThe blue cashmere fibers recovered from the victim's sofa (Item #4) match the fibers comprising the shawl belonging to Margaret Vance (Item #9) in all microscopic and chemical characteristics tested. \n\nThe presence of multiple fiber clusters suggests recent, direct contact between the shawl and the sofa surface, rather than secondary transfer.\n\n// SIGNED //\nDr. Aris Thorne\nForensic Trace Analyst",
+            "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770644554064-c95skj.png",
+            "metadata": {
+                "date": "2023-10-25",
+                "notes": "Positive match confirming presence of Margaret Vance's clothing at the scene.",
+                "author": "Dr. Aris Thorne",
+                "fields": {
+                    "Case ID": "MC-2023-8941",
+                    "Evidence Type": "Trace / Fiber",
+                    "Comparison Result": "Positive Match"
+                },
+                "location": "MCPD Forensic Lab"
+            },
+            "position": [
+                0.10835507453528699,
+                1.54,
+                0.012324987847759428
+            ],
+            "rotation": [
+                0,
+                0.4304716849357424,
+                0
+            ],
+            "description": "Microscopic fibers lifted from the victim's beige sofa."
+        },
+        {
+            "id": "DOC-NEWS-CLIPPING",
+            "type": "PAPER",
+            "clues": [
+                "Provides the 'Revenge' motive context. Mentions her 'beloved mother Margaret' and the 'tragic history' haunting the deceased."
+            ],
+            "label": "Obituary: Emily Vance",
+            "content": "A clipping from the local paper detailing the death of Emily Vance two weeks ago.",
+            "metadata": {
+                "fields": {
+                    "body": "UPTOWN — A quiet Sunday morning in the upscale Uptown district was shattered today by the discovery of Jessica Lin, a 27-year-old marketing executive found deceased in her luxury apartment. Law enforcement officials arrived at the scene shortly after 9:00 AM following a distress call from a cleaning service. While the official cause of death is pending a toxicology report, sources close to the investigation suggest a bottle of Pinot Noir found on the coffee table may be key evidence, as there were no signs of forced entry or struggle.\n\nThe tragedy strikes a particularly dark chord for the local community, occurring less than twenty-four hours after Lin attended the funeral of her childhood friend, Emily Vance. Vance, also 27, died of a drug overdose two weeks ago. Both women were members of a once-inseparable high school clique that notoriously drifted apart following a graduation scandal ten years ago.\n\n\"It is too early to rule anything out,\" stated Sergeant Miller during a brief press conference outside the complex. \"We are looking into the victim's movements over the last 48 hours, particularly her interactions following the memorial service.\" With two members of the former circle now dead within a month, whispers of a curse—or perhaps a reckoning—are already circulating among those who remember the unsolved moral questions of their high school years.",
+                    "date": "October 15, 2023",
+                    "byline": "Lydia Cross, Metro City Chronicle",
+                    "headline": "Uptown Executive Found Dead Hours After Friend's Funeral"
+                },
+                "location": "Evidence Locker",
+                "templateId": "news-clipping"
+            },
+            "position": [
+                -0.273719973413538,
+                1.62,
+                -0.016878486581058838
+            ],
+            "rotation": [
+                0,
+                -1.4796205889437561,
+                0
+            ],
+            "description": "A clipping from the local paper detailing the death of Emily Vance two weeks ago."
+        },
+        {
+            "id": "DOC-NOTE-SCENE",
+            "type": "PAPER",
+            "clues": [
+                "Reads 'For a fresh start. - M'. The handwriting matches Margaret, confirming she brought the poisoned gift."
+            ],
+            "label": "Handwritten Card",
+            "content": "A small card found under the wine bottle.",
+            "metadata": {
+                "fields": {
+                    "body": "For a fresh start.\n\n- M",
+                    "date": "October 24, 2023",
+                    "author": "Margaret Vance"
+                },
+                "location": "Evidence Locker",
+                "templateId": "handwritten-note"
+            },
+            "position": [
+                0.17444751556727658,
+                1.7000000000000002,
+                -0.04123754185461703
+            ],
+            "rotation": [
+                0,
+                -0.953203551866652,
+                0
+            ],
+            "description": "A small card found under the wine bottle."
+        },
+        {
+            "id": "EVID-DOOR-HANDLE",
+            "type": "FORENSIC_SAMPLE",
+            "clues": [
+                "Red Herring. Shows Ethan Park visited recently, likely earlier in the week as he claimed."
+            ],
+            "label": "Swab from Apartment Door Handle",
+            "content": "METROPOLITAN POLICE DEPARTMENT - FORENSIC SERVICES DIVISION\n\nCASE FILE: The Silent Pact\nEVIDENCE ID: EVID-DOOR-HANDLE\nSOURCE: Interior Entry Door Handle, Victim's Apartment\nPROCESSING METHOD: Cyanoacrylate Fuming / Digital Enhancement\n\nEXAMINATION REPORT:\nThe evidence submitted (labeled as collection from interior handle) was processed for latent prints. A partial friction ridge impression was developed on the lever mechanism, specifically positioned where the index finger rests when depressing the handle to exit.\n\nANALYSIS RESULTS:\n- Pattern Type: Ulnar Loop\n- Minutiae count: 14 points of concordance\n- Quality: Moderate; some smudging present on the periphery.\n\nCOMPARISON:\nThe latent print was run against the exclusion database and known associates.\nMATCH CONFIRMED: PARK, ETHAN.\n\nFORENSIC OBSERVATIONS:\nResidue degradation analysis indicates the print was likely deposited 72-96 hours prior to collection. This timeframe predates the estimated time of death and is consistent with a casual visit earlier in the week. The lack of smearing or overlay suggests no frantic movement or struggle occurred at the door during the time of deposit.",
+            "imageUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770644649729-vc2svj.png",
+            "metadata": {
+                "forensicType": "FINGERPRINT"
+            },
+            "position": [
+                -0.039823325001484555,
+                1.78,
+                -0.19456581085693742
+            ],
+            "rotation": [
+                0,
+                0.31720369468922066,
+                0
+            ],
+            "description": "Forensic swab taken from the interior handle of the front door.",
+            "forensicData": {
+                "type": "FINGERPRINT",
+                "value": "LOOP-WHORL-ARCH",
+                "description": "Matches Ethan Park."
+            }
+        }
+    ],
+    "solution": {
+        "motive": "Revenge. Margaret holds Jessica and the other friends responsible for the trauma that destroyed Emily's life. Following Emily's suicide, Margaret decided to eliminate those who stood by and watched the assault happen years ago.",
+        "weaponId": "OBJ-WINE-BOTTLE",
+        "culpritId": "S1",
+        "reasoning": "While Margaret's alibi seemed solid initially, technical analysis revealed a flaw. She claimed to be 'hosting' a Zoom meeting, but logs show she turned her camera and microphone off at 8:05 PM, claiming emotional distress, and played a pre-recorded audio loop of 'meditative silence.' This gave her a two-hour window to drive to Jessica's apartment (a 20-minute trip), share a 'peace offering' bottle of wine spiked with cyanide, and return home before the meeting ended. The other suspects have verifiable physical or digital alibis (Chloe's photos, Marcus's gym logs, Ethan's live stream). Sarah had no alibi, but no physical evidence linked her to the scene, whereas fibers matching Margaret's shawl were found on the victim's sofa."
+    },
+    "deductionRules": [
+        {
+            "id": "rule_1",
+            "source": "OBJ-WINE-BOTTLE",
+            "target": "DOC-AUTOPSY",
+            "type": "MATCHES",
+            "description": "The murder weapon matches autopsy findings",
+            "weight": 1.0,
+            "reasoning": "The tainted bottle of Pinot Noir found at the scene contains the exact poison (Potassium Cyanide) identified in the victim's stomach during autopsy, confirming it as the delivery method"
+        },
+        {
+            "id": "rule_2",
+            "source": "OBJ-WINE-BOTTLE",
+            "target": "S1",
+            "type": "MATCHES",
+            "description": "Fingerprints on weapon identify the handler",
+            "weight": 1.0,
+            "reasoning": "Latent fingerprints recovered from the bottle neck match Margaret Vance's pattern (LOOP-LOOP-WHORL), placing her in direct contact with the murder weapon at the critical moment of pouring"
+        },
+        {
+            "id": "rule_3",
+            "source": "OBJ-WINE-GLASS-GUEST",
+            "target": "S1",
+            "type": "MATCHES",
+            "description": "DNA on guest glass identifies the visitor",
+            "weight": 1.0,
+            "reasoning": "Saliva DNA recovered from the rim of the untainted wine glass (CAGG-GGGG-GCAA-ATCA) matches Margaret Vance, proving she was physically present at the crime scene"
+        },
+        {
+            "id": "rule_4",
+            "source": "OBJ-FIBERS",
+            "target": "S1",
+            "type": "MATCHES",
+            "description": "Fabric fibers from sofa match suspect's clothing",
+            "weight": 1.0,
+            "reasoning": "Blue cashmere fibers lifted from the victim's sofa match Margaret Vance's distinctive navy shawl in microscopic and chemical analysis, placing her in direct contact with the scene"
+        },
+        {
+            "id": "rule_5",
+            "source": "DOC-SERVER-LOGS",
+            "target": "S1",
+            "type": "CONTRADICTS",
+            "description": "Technical logs prove alibi is false",
+            "weight": 1.0,
+            "reasoning": "Zoom server logs show Margaret disabled her camera and microphone at 20:05, switched to a pre-recorded audio loop, and had zero peripheral interaction (no mouse/keyboard) for 1h 49m—proving she was not actually present on the call and had a two-hour window to commit the murder"
+        },
+        {
+            "id": "rule_6",
+            "source": "AUD-VOICEMAIL",
+            "target": "S1",
+            "type": "MOTIVATES",
+            "description": "Voicemail establishes premeditation and intent",
+            "weight": 0.9,
+            "reasoning": "Margaret's recorded message frames the visit as a 'peace offering' and specifically mentions bringing the Pinot Noir, proving deliberate planning and intent to meet the victim under false pretenses"
+        },
+        {
+            "id": "rule_7",
+            "source": "DOC-NOTE-SCENE",
+            "target": "S1",
+            "type": "MATCHES",
+            "description": "Handwritten note proves suspect brought the weapon",
+            "weight": 0.9,
+            "reasoning": "The card found under the wine bottle ('For a fresh start. - M') matches Margaret's handwriting, confirming she personally delivered the poisoned bottle to the victim"
+        },
+        {
+            "id": "rule_8",
+            "source": "DOC-NOTE-SCENE",
+            "target": "AUD-VOICEMAIL",
+            "type": "MATCHES",
+            "description": "Note corroborates voicemail narrative",
+            "weight": 0.8,
+            "reasoning": "The handwritten message echoes themes of reconciliation and 'fresh starts' mentioned in the voicemail, demonstrating consistent premeditated narrative to lower the victim's guard"
+        },
+        {
+            "id": "rule_9",
+            "source": "DOC-EMAIL-MARCUS",
+            "target": "S4",
+            "type": "MOTIVATES",
+            "description": "Email establishes Marcus's motive (red herring)",
+            "weight": 0.5,
+            "reasoning": "Red herring - Marcus threatens Jessica about keeping silent on 'that night', creating apparent motive. However, his gym alibi (CCTV 8:10 PM - 9:45 PM) places him at a distance during the estimated time of death",
+            "isRedHerring": true
+        },
+        {
+            "id": "rule_10",
+            "source": "OBJ-CIGARETTE",
+            "target": "S3",
+            "type": "MOTIVATES",
+            "description": "Cigarette DNA places innocent suspect at scene (red herring)",
+            "weight": 0.4,
+            "reasoning": "Red herring - DNA on cigarette matches Sarah O'Connell. However, forensic timeline analysis shows significant environmental degradation indicating the cigarette was deposited 48-72 hours before the murder, placing Sarah at the scene days earlier, not at the time of death",
+            "isRedHerring": true
+        },
+        {
+            "id": "rule_11",
+            "source": "DOC-WITNESS-MARGARET",
+            "target": "S1",
+            "type": "CONTRADICTS",
+            "description": "Witness testimony exposes false alibi",
+            "weight": 0.8,
+            "reasoning": "A grief support group participant (Brenda Miller) witnessed Margaret turning off her camera at 8:05 PM and becoming unreachable for nearly two hours, directly contradicting Margaret's claim that she 'never left the screen' and 'facilitated the entire meeting'"
+        },
+        {
+            "id": "rule_12",
+            "source": "DOC-AUTOPSY",
+            "target": "OBJ-WINE-BOTTLE",
+            "type": "MATCHES",
+            "description": "Autopsy confirms victim consumed the poisoned wine",
+            "weight": 1.0,
+            "reasoning": "Medical examiner's toxicology report identifies the exact lethal concentration of Potassium Cyanide in the victim's blood and gastric contents matching the concentration found in the Pinot Noir bottle, confirming the weapon delivery method"
+        },
+        {
+            "id": "rule_13",
+            "source": "DOC-NEWS-CLIPPING",
+            "target": "S1",
+            "type": "MOTIVATES",
+            "description": "Emily's death establishes revenge motive",
+            "weight": 0.9,
+            "reasoning": "The obituary documents Emily Vance's death just two weeks prior and mentions Margaret as her mother, establishing the emotional motive: Margaret blamed Jessica and her friends for Emily's trauma and subsequent overdose, driving her to revenge"
+        },
+        {
+            "id": "rule_14",
+            "source": "S2",
+            "target": "OBJ-WINE-BOTTLE",
+            "type": "CONTRADICTS",
+            "description": "Chloe's alibi eliminates her from consideration",
+            "weight": 0.5,
+            "reasoning": "Red herring - Chloe Banks, the frenemy with motive (Jessica was about to expose embezzlement), has verifiable alibi: Instagram photos place her at a downtown launch party at 9:15 PM, during the estimated time of death",
+            "isRedHerring": true
+        },
+        {
+            "id": "rule_15",
+            "source": "S5",
+            "target": "OBJ-WINE-BOTTLE",
+            "type": "CONTRADICTS",
+            "description": "Ethan's streaming activity proves alibi",
+            "weight": 0.5,
+            "reasoning": "Red herring - Ethan Park, the bystander with potential motive (feared Jessica would implicate him), claims he was live-streaming video games from 7:00 PM until midnight with viewer logs confirming his presence during estimated time of death",
+            "isRedHerring": true
+        }
+    ],
+    "suspects": [
+        {
+            "id": "S1",
+            "bio": "The Grieving Mother. Blames Jessica and her friends for ruining Emily's life, leading to her eventual overdose.. Alibi: Claims she was hosting a virtual grief support session on Zoom from 8:00 PM to 10:00 PM.",
+            "name": "Margaret Vance",
+            "notes": "The Grieving Mother",
+            "photoUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770644717375-d9c7o.jpg",
+            "bloodType": "A-",
+            "dnaSequence": "CAGG-GGGG-GCAA-ATCA",
+            "fingerprintPattern": "LOOP-LOOP-WHORL"
+        },
+        {
+            "id": "S2",
+            "bio": "The Frenemy. Jessica was about to expose Chloe's embezzlement to their shared employer.. Alibi: Was at a launch party downtown; tagged in photos on Instagram at 9:15 PM.",
+            "name": "Chloe Banks",
+            "notes": "The Frenemy",
+            "photoUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770644745134-2j5g4i.jpg",
+            "bloodType": "B-",
+            "dnaSequence": "CGCC-GCGC-TTCC-GAGA",
+            "fingerprintPattern": "ARCH-LOOP-LOOP"
+        },
+        {
+            "id": "S3",
+            "bio": "The Guilty Friend. Wanted to confess the truth about the assault 10 years ago; Jessica threatened to ruin her career if she talked.. Alibi: Claims she was home alone, sleeping off a migraine after the funeral.",
+            "name": "Sarah O'Connell",
+            "notes": "The Guilty Friend",
+            "photoUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770644768981-bap1ov.jpg",
+            "bloodType": "AB-",
+            "dnaSequence": "TGAA-CAGG-TGTG-GTGG",
+            "fingerprintPattern": "LOOP-ARCH-WHORL"
+        },
+        {
+            "id": "S4",
+            "bio": "The Ex-Boyfriend. Jessica owed him $50,000 for a failed startup investment.. Alibi: Logged into his gym at 8:10 PM and checked out at 9:45 PM. CCTV confirms his presence.",
+            "name": "Marcus Thorne",
+            "notes": "The Ex-Boyfriend",
+            "photoUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770644791714-b751h7.jpg",
+            "bloodType": "AB-",
+            "dnaSequence": "AAAA-ACGA-ACAC-GGAG",
+            "fingerprintPattern": "ARCH-LOOP-LOOP"
+        },
+        {
+            "id": "S5",
+            "bio": "The Bystander. Was present at the party 10 years ago; feared Jessica's sudden desire to 'clear the air' would implicate him.. Alibi: Was live-streaming video games on Twitch from 7:00 PM until midnight.",
+            "name": "Ethan Park",
+            "notes": "The Bystander",
+            "photoUrl": "https://ofwnxzravbpgblhhxwhw.supabase.co/storage/v1/object/public/case-assets/case-assets/asset-1770644812318-2vsii.jpg",
+            "bloodType": "B-",
+            "dnaSequence": "ACGC-TGAG-TCGA-CTAA",
+            "fingerprintPattern": "LOOP-WHORL-ARCH"
+        }
+    ],
+    "difficulty": "Hard"
+}

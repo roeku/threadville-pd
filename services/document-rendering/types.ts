@@ -141,9 +141,14 @@ export interface BoardingPassData {
 
 export interface NewsClippingData {
   headline: string;
+  subheadline?: string;
   byline: string;
   date: string;
+  location?: string;
+  edition?: string;
+  lead?: string;
   body: string;
+  photoCaption?: string;
 }
 
 export interface CrimeSceneSketchData {
@@ -160,12 +165,32 @@ export interface HandwrittenNoteData {
 }
 
 export interface InternalMemoData {
+  organization?: string;
+  department?: string;
+  memoId?: string;
   from: string;
   to: string;
   date: string;
   subject: string;
   body: string;
   watermark?: string;
+  cc?: string;
+  attachments?: string[];
+}
+
+export interface LetterheadPageData {
+  headerStr?: string;
+  subheader?: string;
+  sender?: string;
+  recipient?: string;
+  recipientLines?: string[];
+  date?: string;
+  subject?: string;
+  reference?: string;
+  body: string;
+  enclosures?: string[];
+  contactLine?: string;
+  footer?: string;
 }
 
 

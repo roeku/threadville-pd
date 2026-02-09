@@ -477,8 +477,16 @@
             "content": "Master keycard access log and tenant health form showing allergy disclosure.",
             "metadata": {
                 "fields": {
-                    "accessLog": "MASTER KEYCARD HOLDERS - Gilded Oaks Building 4400:\n- Alex Chen (Unit 4B) - Personal Key\n- Patricia Higgins (Property Manager) - Master Override\n- Security Guard Liam O'Connor - Emergency Key\n- Emergency Services - Locksmith Access",
-                    "medicalForm": "TENANT MEDICAL DISCLOSURE FORM\nName: Alex Chen | Unit: 4B\nAllergies: SEVERE - Peanut (anaphylactic shock risk)\nEpiPen Prescription: On file\nEmergency Contact: Ryan Chen (Brother)\nNOTE: All building staff notified of allergy for catering/maintenance purposes"
+                    "organization": "Gilded Oaks Property Management",
+                    "department": "Security & Tenant Services",
+                    "memoId": "GO-2023-1027-MED",
+                    "from": "Patricia Higgins, Property Manager",
+                    "to": "Building Security Team / Emergency Services",
+                    "date": "2023-01-15",
+                    "subject": "Critical: Tenant Medical Alert - Unit 4B",
+                    "body": "MASTER KEYCARD HOLDERS - Gilded Oaks Building 4400:\n\n• Alex Chen (Unit 4B) - Personal Key (Issued 2023-01-10)\n• Patricia Higgins (Property Manager) - Master Override (All Units)\n• Security Guard Liam O'Connor - Emergency Key (All Units)\n• Emergency Services - Locksmith Access Protocol\n\nTENANT MEDICAL DISCLOSURE FORM\n\nName: Alex Chen\nUnit: 4B\nOccupancy Date: January 10, 2023\n\nMEDICAL ALERT:\nAllergies: SEVERE - Peanut (anaphylactic shock risk)\nEpiPen Prescription: On file with building medical records\nEmergency Contact: Ryan Chen (Brother) - (555) 0198\n\nPROTOCOL NOTE:\nAll building staff have been notified of this allergy for catering, maintenance, and emergency response purposes. In the event of medical emergency, EpiPen is stored in Unit 4B master bedroom nightstand.\n\nThis information is protected under HIPAA but disclosed with tenant consent for safety purposes.",
+                    "watermark": "CONFIDENTIAL",
+                    "cc": "Emergency Medical Services, Building Maintenance"
                 },
                 "location": "Evidence Locker",
                 "templateId": "internal-memo"
@@ -505,10 +513,11 @@
             "content": "Statement from neighbor in Unit 4A documenting suspicious activity.",
             "metadata": {
                 "fields": {
-                    "witness": "David Morelli, Tenant Unit 4A",
-                    "date": "2023-10-27",
-                    "time": "18:30-19:15",
-                    "statement": "I was leaving my apartment around 6:10 PM (18:10) to walk my dog. I saw Mrs. Higgins in the hallway near the 4B apartment with a keycard in her hand. She seemed startled when she saw me and quickly walked toward the elevator. Later, around 7:05 PM (19:05), I heard raised voices from 4B - sounded like Alex arguing with someone, but I couldn't make out words. When I returned from my walk at 7:15 PM (19:15), I saw Mrs. Higgins leaving the hallway again and entering the stairwell. This contradicts her claim of being in the office all evening."
+                    "header": "WITNESS STATEMENT",
+                    "name": "David Morelli, Tenant Unit 4A",
+                    "timestamp": "2023-10-27 18:30-19:15",
+                    "officer": "Det. R. Silva",
+                    "body": "I was leaving my apartment around 6:10 PM (18:10) to walk my dog. I saw Mrs. Higgins in the hallway near the 4B apartment with a keycard in her hand. She seemed startled when she saw me and quickly walked toward the elevator.\n\nLater, around 7:05 PM (19:05), I heard raised voices from 4B - sounded like Alex arguing with someone, but I couldn't make out words.\n\nWhen I returned from my walk at 7:15 PM (19:15), I saw Mrs. Higgins leaving the hallway again and entering the stairwell. This contradicts her claim of being in the office all evening."
                 },
                 "location": "Evidence Locker",
                 "templateId": "witness-statement"
@@ -535,14 +544,24 @@
             "content": "Contract showing Sophie's compensation terms and evidence of unpaid wages.",
             "metadata": {
                 "fields": {
-                    "employerName": "Chen Gaming Enterprises / Apex Productions",
-                    "employeeName": "Sophie Jackson",
-                    "position": "Personal Assistant / Content Moderator",
-                    "contractDate": "2023-01-15",
-                    "monthlyRate": "$4,500",
-                    "unpaidMonths": "June, July, August, September, October (5 months = $22,500 owed)",
-                    "lastPaymentDate": "2023-05-31",
-                    "note": "Despite multiple requests, Alex Chen refused to process payroll, claiming 'cash flow issues.' Sophie continued working without compensation."
+                    "headerStr": "Chen Gaming Enterprises",
+                    "subheader": "Apex Productions Division",
+                    "sender": "Alex Chen, CEO",
+                    "recipient": "Sophie Jackson",
+                    "recipientLines": [
+                        "Personal Assistant / Content Moderator",
+                        "Employee ID: CG-2023-004"
+                    ],
+                    "date": "2023-01-15",
+                    "subject": "Employment Agreement",
+                    "reference": "Contract #CG-PA-2023-001",
+                    "body": "This Employment Agreement (\"Agreement\") is entered into between Chen Gaming Enterprises (\"Employer\") and Sophie Jackson (\"Employee\") effective January 15, 2023.\n\nPOSITION: Personal Assistant / Content Moderator\n\nCOMPENSATION: $4,500 per month, payable on the last business day of each month via direct deposit.\n\nDUTIES:\n• Manage daily schedule and correspondence\n• Moderate live stream chat and community forums\n• Coordinate sponsorship deliveries and product placements\n• Prepare meals and beverages as requested during streaming sessions\n• Handle administrative tasks and vendor communications\n\nPAYMENT RECORDS:\nJanuary 2023 - May 2023: Paid in full\nJune 2023 - Present: UNPAID\n\nTotal Outstanding Balance: $22,500 (5 months)\nLast Payment Date: May 31, 2023\n\nEmployee has made repeated requests for payment. Employer has cited 'cash flow issues' and 'pending sponsorship deals' as reasons for non-payment. Employee has continued to perform duties despite non-payment.\n\nThis document serves as evidence of breach of contract and wage theft under California Labor Code §203.",
+                    "enclosures": [
+                        "Direct Deposit Authorization Form",
+                        "Payment Request Emails (June-Oct 2023)"
+                    ],
+                    "contactLine": "1440 Streaming Blvd, Suite 200, Metro City, CA 90210",
+                    "footer": "Chen Gaming Enterprises • Tax ID: 94-1234567"
                 },
                 "location": "Evidence Locker",
                 "templateId": "letterhead-page"
@@ -569,13 +588,15 @@
             "content": "Official record of Alex's public accusation against Kai and its consequences.",
             "metadata": {
                 "fields": {
-                    "incident": "ESPORTS TOURNAMENT DISPUTE - 2020",
-                    "event": "ChampionsCon 2020 - Fighting Game Tournament",
-                    "accuser": "Alex 'Apex' Chen",
-                    "accused": "Kai 'Viper' Tanaka",
-                    "allegation": "Alex publicly accused Kai of using a modded controller during semi-finals match. Alex livestreamed the accusation with 100,000+ viewers watching.",
-                    "outcome": "Kai was disqualified pending investigation. Investigation later found NO evidence of cheating. However, the public accusation permanently damaged Kai's reputation and sponsorship deals were cancelled.",
-                    "current": "Kai's career never recovered. Alex never publicly retracted the accusation. Kai has been attempting to rebuild reputation for 3+ years with limited success."
+                    "headline": "Rising Star Disqualified Amid Cheating Scandal at ChampionsCon",
+                    "subheadline": "Investigation underway after livestreamed accusation rocks esports community",
+                    "byline": "Marcus Chen, Esports Correspondent",
+                    "date": "November 15, 2020",
+                    "location": "Las Vegas Convention Center",
+                    "edition": "Evening Edition",
+                    "lead": "In a shocking turn of events at this year's ChampionsCon fighting game tournament, rising star Kai 'Viper' Tanaka was disqualified from the semi-finals following a public accusation of cheating made by opponent Alex 'Apex' Chen during a live broadcast viewed by over 100,000 fans worldwide.",
+                    "body": "The incident occurred during the break between rounds when Chen, visibly agitated, grabbed his microphone and addressed his streaming audience directly. 'This is ridiculous,' Chen stated. 'I've been watching the replays, and there's no way those inputs are humanly possible without a modded controller. Tournament officials need to investigate this immediately.'\n\nTournament organizers quickly paused the event and launched an investigation. Tanaka's equipment was confiscated and examined by technical staff while the venue erupted in speculation and debate.\n\n'I've never cheated in my life,' Tanaka said in a brief statement to press. 'These are serious allegations that could destroy everything I've worked for.'\n\nThe investigation concluded three days later, finding no evidence of equipment modification or rule violations. However, the damage to Tanaka's reputation had already been done. Major sponsors, including TeraGaming and NeutraBev, terminated their contracts citing 'brand safety concerns.'\n\nChen has not publicly retracted the accusation, and tensions between the two players remain high. Industry experts suggest this incident highlights the need for clearer protocols regarding on-stream accusations and competitor conduct.\n\nTanaka has filed a formal complaint with the Esports Integrity Commission, seeking both exoneration and damages for lost sponsorship opportunities estimated at over $250,000.",
+                    "photoCaption": "Kai Tanaka (left) and Alex Chen (right) during the disputed semi-final match. Photo by Sarah Kim/ESN Sports"
                 },
                 "location": "Evidence Locker",
                 "templateId": "news-clipping"

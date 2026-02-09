@@ -41,27 +41,36 @@ export const Spectrograph: React.FC<SpectrographProps> = ({ data }) => {
         Math.abs(amplitude - targetSettings.amp) < tolerance &&
         Math.abs(wavelength - targetSettings.wave) < tolerance;
 
+    const proximityDistance = Math.abs(amplitude - targetSettings.amp) + Math.abs(wavelength - targetSettings.wave);
+    const maxDistance = 200;
+    const signalQuality = Math.max(0, Math.min(100, Math.round(100 - (proximityDistance / maxDistance) * 100)));
+
     const handlePrintReport = () => {
         if (!evidence) return;
         const timestamp = new Date().toLocaleString();
 
+        const transcriptContent = evidence.transcript || evidence.content || 'No decoded transcript available.';
+        const logEntries = transcriptContent.split('\n').filter(line => line.trim().length > 0);
+
         const reportData = {
-            type: 'forensic-report',
-            caseNumber: currentCase?.id || "UNKNOWN",
-            title: 'Spectrographic Analysis Report',
-            reportType: 'SPECTROGRAPHIC ANALYSIS',
-            analyst: 'Automated Audio DSP',
-            date: timestamp,
+            type: 'server-log',
+            templateId: 'server-log',
             evidenceId: evidence.id,
-            findings: isLocked
-                ? `Signal isolation complete. Background noise reduced by 94%. Transcript generated from clarified audio stream:\n\n"${evidence.transcript || evidence.content}"`
-                : "Signal too noisy for transcription.",
-            status: isLocked ? "CONCLUSIVE" : "INCONCLUSIVE",
+            date: timestamp,
+            source: evidence.label,
+            timestampRange: timestamp,
+            entries: logEntries,
+            fields: {
+                caseNumber: currentCase?.id || "UNKNOWN",
+                source: evidence.label,
+                timestampRange: timestamp,
+                entries: logEntries
+            }
         };
 
         onPrint(
             `Audio Transcript: ${evidence.label}`,
-            `Spectrograph Report`,
+            `Server Logs: ${evidence.label}`,
             reportData
         );
     };
@@ -177,7 +186,17 @@ export const Spectrograph: React.FC<SpectrographProps> = ({ data }) => {
                         <span className="text-[10px] text-slate-500 font-mono">SRC: {evidence.label}</span>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                    <div className="hidden sm:flex items-center gap-2">
+                        <span className="text-[10px] text-slate-500 font-bold tracking-wider">SIGNAL QUALITY</span>
+                        <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                            <div
+                                className="h-full bg-emerald-500 transition-all duration-200"
+                                style={{ width: `${signalQuality}%` }}
+                            />
+                        </div>
+                        <span className="text-[10px] font-mono text-emerald-400 w-8 text-right">{signalQuality}%</span>
+                    </div>
                     {isLocked ? (
                         <span className="text-xs font-bold text-black bg-emerald-500 px-2 py-0.5 rounded">SIGNAL CLEAR</span>
                     ) : (

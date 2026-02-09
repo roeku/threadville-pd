@@ -532,16 +532,13 @@ const SceneLogic = ({
 
       if (currentView === 'BOARD') {
         // --- BOARD VIEW ---
-        // Enable Pan (Right Click / 1 Finger) and Zoom (Wheel / 2 Fingers)
+        // Enable Pan (Right Click / 1 Finger) - Zoom disabled to prevent clipping issues
         controls.mouseButtons.right = 2; // TRUCK
-        controls.mouseButtons.wheel = 4; // DOLLY
+        // controls.mouseButtons.wheel = 4; // DOLLY - Disabled
         controls.touches.one = 2 as typeof controls.touches.one;        // TRUCK (Pan on touch)
-        controls.touches.two = 4 as typeof controls.touches.two;        // DOLLY (Pinch to zoom)
+        // controls.touches.two = 4 as typeof controls.touches.two;        // DOLLY (Pinch to zoom) - Disabled
         controls.truckSpeed = 2.0;
-        controls.dollySpeed = 2.0;
-        controls.minDistance = 0.5;
-        // Mobile: increase max distance for better overview on narrow screens
-        controls.maxDistance = viewport.isMobile ? 6.0 : 4.0;
+        // controls.dollySpeed = 2.0; // Disabled
 
         tmpWorldB.current.set(
           debugParams.boardPos.x,
@@ -682,6 +679,21 @@ const SceneLogic = ({
 
   }, [currentView, getDeskWorldPoint, deskCenterLocal, computerLocal, viewport, calculateMonitorCameraDistance, phoneDir, phoneCamDistance, phoneCamRotation]);
 
+  // Calculate distance limits based on current view
+  const distanceLimits = React.useMemo(() => {
+    if (currentView === 'BOARD') {
+      return {
+        minDistance: 1.2,
+        maxDistance: viewport.isMobile ? 4.5 : 3.5
+      };
+    }
+    // Default for DESK and other views
+    return {
+      minDistance: 0.5,
+      maxDistance: 3.0
+    };
+  }, [currentView, viewport.isMobile]);
+
   return (
     // <OrbitControls />
 
@@ -696,8 +708,8 @@ const SceneLogic = ({
       maxPolarAngle={Math.PI / 2.2}   // Prevent looking too far down
       minAzimuthAngle={-Math.PI / 3}  // Allow 60 deg left turn
       maxAzimuthAngle={Math.PI / 3}   // Allow 60 deg right turn
-      minDistance={0.5}
-      maxDistance={3.0}
+      minDistance={distanceLimits.minDistance}
+      maxDistance={distanceLimits.maxDistance}
       mouseButtons={{
         left: 0,  // Disable left mouse drag
         right: 0, // Disable right mouse drag
@@ -747,6 +759,38 @@ const GameScene: React.FC<GameSceneProps> = ({
   const setRadialMenu = useGameStore(state => state.setRadialMenu);
 
   const handleUnfocus = React.useCallback(() => setFocusedItemId(null), [setFocusedItemId]);
+
+  React.useEffect(() => {
+    const isEscape = (e: KeyboardEvent) =>
+      e.key === 'Escape' || e.key === 'Esc' || e.code === 'Escape' || e.keyCode === 27;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isEscape(e)) return;
+
+      const { currentView, setView } = useGameStore.getState();
+
+      if (focusedItemId) {
+        e.preventDefault();
+        e.stopPropagation();
+        setFocusedItemId(null);
+        return;
+      }
+
+      if (currentView === 'COMPUTER' || currentView === 'EVIDENCE' || currentView === 'BOARD') {
+        e.preventDefault();
+        e.stopPropagation();
+        setView('DESK');
+      }
+    };
+
+    const options: AddEventListenerOptions = { capture: true };
+    window.addEventListener('keydown', handleKeyDown, options);
+    document.addEventListener('keydown', handleKeyDown, options);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, options);
+      document.removeEventListener('keydown', handleKeyDown, options);
+    };
+  }, [focusedItemId, setFocusedItemId]);
 
   const handlePinClick = React.useCallback((id: string, worldPos: THREE.Vector3) => {
     if (linkingFromId === id) {
@@ -849,9 +893,10 @@ const GameScene: React.FC<GameSceneProps> = ({
         dpr: [1, 1.5],
         shadows: true,
         onPointerMissed: () => {
-          // Don't change view if in COMPUTER or PHONE mode (user is interacting with OS)
-          const currentView = useGameStore.getState().currentView;
-          if (currentView === 'COMPUTER' || currentView === 'PHONE') return;
+          // Don't change view if in PHONE mode, or if click is on the computer screen
+          const { currentView, isPointerOnComputer } = useGameStore.getState();
+          if (currentView === 'PHONE') return;
+          if ((currentView === 'COMPUTER' || currentView === 'EVIDENCE') && isPointerOnComputer) return;
           setFocusedItemId(null);
           if (currentView !== 'DESK') {
             console.log('[ViewChange][Canvas] onPointerMissed', { from: currentView, to: 'DESK' });

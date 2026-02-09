@@ -6,10 +6,16 @@ import React from 'react';
 interface LetterheadPageProps {
     data: {
         headerStr?: string; // Fallback if no specific format
+        subheader?: string;
         sender?: string;
         recipient?: string;
+        recipientLines?: string[];
         date?: string;
+        subject?: string;
+        reference?: string;
         body: string;
+        enclosures?: string[];
+        contactLine?: string;
         footer?: string;
     };
 }
@@ -21,26 +27,56 @@ export const LetterheadPageTemplate: React.FC<LetterheadPageProps> = ({ data }) 
             <div className="absolute inset-0 pointer-events-none opacity-10 bg-[url('/textures/documents/paper_plain_1.png')] bg-cover mix-blend-multiply"></div>
 
             {/* Letterhead Header */}
-            <div className="text-center mb-16 relative">
+            <div className="text-center mb-12 relative">
                 <div className="inline-block border-b-2 border-black pb-2 px-8">
                     <h1 className="text-2xl font-bold uppercase tracking-widest">{data.headerStr || "STERLING MANOR"}</h1>
-                    <div className="text-xs uppercase mt-1 tracking-wider text-gray-600">Established 1892</div>
+                    <div className="text-xs uppercase mt-1 tracking-wider text-gray-600">{data.subheader || "Established 1892"}</div>
                 </div>
+                {data.contactLine && (
+                    <div className="mt-3 text-[10px] uppercase tracking-[0.2em] text-gray-500">
+                        {data.contactLine}
+                    </div>
+                )}
             </div>
 
             {/* Date */}
-            <div className="text-right mb-12 font-typewriter">
+            <div className="text-right mb-8 font-typewriter">
                 {data.date || "Unknown Date"}
             </div>
 
             {/* Salutation / Recipient */}
-            <div className="mb-8 font-bold">
+            <div className="mb-6 font-bold">
                 {data.recipient && (
-                    <div className="mb-4">
-                        TO: {data.recipient}
+                    <div className="mb-4 space-y-1">
+                        <div className="text-xs uppercase tracking-widest text-gray-500">Recipient</div>
+                        <div className="text-base">{data.recipient}</div>
+                        {data.recipientLines && data.recipientLines.length > 0 && (
+                            <div className="text-sm font-normal text-gray-600">
+                                {data.recipientLines.map((line, index) => (
+                                    <div key={`${line}-${index}`}>{line}</div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
+
+            {(data.subject || data.reference) && (
+                <div className="mb-8 space-y-2 text-sm">
+                    {data.subject && (
+                        <div>
+                            <span className="uppercase tracking-widest text-gray-500">Subject:</span>{' '}
+                            <span className="font-semibold">{data.subject}</span>
+                        </div>
+                    )}
+                    {data.reference && (
+                        <div>
+                            <span className="uppercase tracking-widest text-gray-500">Reference:</span>{' '}
+                            <span className="font-semibold">{data.reference}</span>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Body */}
             <div className="flex-1 text-lg leading-relaxed whitespace-pre-wrap text-justify relative z-10">
@@ -57,6 +93,12 @@ export const LetterheadPageTemplate: React.FC<LetterheadPageProps> = ({ data }) 
                     {data.sender || "The Management"}
                 </div>
             </div>
+
+            {data.enclosures && data.enclosures.length > 0 && (
+                <div className="mt-8 text-xs uppercase tracking-widest text-gray-500">
+                    Enclosures: {data.enclosures.join(' • ')}
+                </div>
+            )}
 
             {/* Footer */}
             <div className="mt-auto text-center text-xs text-gray-500 uppercase tracking-widest">

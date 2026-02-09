@@ -125,21 +125,24 @@ export default function InGameTutorial({
   };
 
   const getPositionClasses = () => {
+    // On mobile, always center the tutorial. On desktop, use specified positions.
+    const mobilePosition = 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 md:top-auto md:left-auto md:translate-x-0 md:translate-y-0';
+    
     switch (stepConfig.position) {
       case 'center':
         return 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2';
       case 'top-left':
-        return 'top-6 left-6';
+        return `${mobilePosition} md:top-6 md:left-6`;
       case 'top-right':
-        return 'top-6 right-6';
+        return `${mobilePosition} md:top-6 md:right-6`;
       case 'bottom-left':
-        return 'bottom-24 left-6';
+        return `${mobilePosition} md:bottom-24 md:left-6`;
       case 'bottom-right':
-        return 'bottom-24 right-6';
+        return `${mobilePosition} md:bottom-24 md:right-6`;
       case 'bottom-center':
-        return 'bottom-24 left-1/2 -translate-x-1/2';
+        return `${mobilePosition} md:bottom-24 md:left-1/2 md:-translate-x-1/2`;
       default:
-        return 'top-6 left-6';
+        return `${mobilePosition} md:top-6 md:left-6`;
     }
   };
 
@@ -152,10 +155,10 @@ export default function InGameTutorial({
       <div className="absolute inset-0 bg-black/40 pointer-events-none" />
 
       {/* Tutorial card */}
-      <div className={`absolute ${getPositionClasses()} pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-500`}>
-        <div className="bg-slate-900/95 rounded-lg shadow-2xl border border-slate-600 max-w-md">
+      <div className={`absolute ${getPositionClasses()} pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-500 w-full px-4 md:px-0 md:w-auto`}>
+        <div className="bg-slate-900/95 rounded-lg shadow-2xl border border-slate-600 w-full md:max-w-md">
           {/* Header */}
-          <div className="flex justify-between items-start p-4 border-b border-slate-700">
+          <div className="flex justify-between items-start p-3 md:p-4 border-b border-slate-700">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
@@ -163,12 +166,12 @@ export default function InGameTutorial({
                   Step {currentIndex + 1} of {TUTORIAL_STEPS.length}
                 </span>
               </div>
-              <h3 className="text-xl font-bold text-slate-100">{stepConfig.title}</h3>
+              <h3 className="text-lg md:text-xl font-bold text-slate-100">{stepConfig.title}</h3>
             </div>
             {stepConfig.canSkip && (
               <button
                 onClick={handleSkip}
-                className="text-slate-400 hover:text-slate-100 transition-colors ml-2"
+                className="text-slate-400 hover:text-slate-100 active:text-slate-200 transition-colors ml-2 p-1 touch-manipulation min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center"
                 title="Skip tutorial"
               >
                 <X size={20} />
@@ -177,15 +180,15 @@ export default function InGameTutorial({
           </div>
 
           {/* Content */}
-          <div className="p-4 space-y-3">
-            <p className="text-slate-200 leading-relaxed">
+          <div className="p-3 md:p-4 space-y-3">
+            <p className="text-sm md:text-base text-slate-200 leading-relaxed">
               {stepConfig.description}
             </p>
 
             {stepConfig.hint && (
-              <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 flex items-start gap-2">
+              <div className="bg-slate-800 border border-slate-700 rounded-lg p-2.5 md:p-3 flex items-start gap-2">
                 <MousePointerClick size={16} className="text-amber-400 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-slate-200">
+                <p className="text-xs md:text-sm text-slate-200">
                   {stepConfig.hint}
                 </p>
               </div>
@@ -201,14 +204,14 @@ export default function InGameTutorial({
           </div>
 
           {/* Footer */}
-          <div className="p-4 pt-0 flex justify-between items-center">
-            <div className="flex gap-1">
+          <div className="p-3 md:p-4 pt-0 flex justify-between items-center gap-3">
+            <div className="flex gap-1 flex-shrink-0">
               {TUTORIAL_STEPS.map((_, idx) => (
                 <div
                   key={idx}
                   className={`h-1 rounded-full transition-all ${idx <= currentIndex
-                    ? 'bg-amber-500 w-8'
-                    : 'bg-slate-700 w-4'
+                    ? 'bg-amber-500 w-6 md:w-8'
+                    : 'bg-slate-700 w-3 md:w-4'
                     }`}
                 />
               ))}
@@ -217,16 +220,16 @@ export default function InGameTutorial({
             {(!stepConfig.actionRequired || stepConfig.allowManualAdvance) && (
               <button
                 onClick={handleNext}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-600 rounded-md transition-colors font-semibold text-sm shadow-sm active:translate-y-[1px]"
+                className="flex items-center gap-2 px-3 md:px-4 py-2.5 md:py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-100 border border-slate-600 rounded-md transition-colors font-semibold text-sm shadow-sm active:translate-y-[1px] touch-manipulation min-h-[44px] md:min-h-0"
               >
                 {isLastStep ? (
                   <>
                     <CheckCircle size={16} />
-                    Got it!
+                    <span className="whitespace-nowrap">Got it!</span>
                   </>
                 ) : (
                   <>
-                    Next
+                    <span className="whitespace-nowrap">Next</span>
                     <ArrowRight size={16} />
                   </>
                 )}
@@ -235,9 +238,9 @@ export default function InGameTutorial({
           </div>
         </div>
 
-        {/* Pointer arrow for non-center positions */}
+        {/* Pointer arrow for non-center positions (desktop only) */}
         {stepConfig.position !== 'center' && (
-          <div className="absolute -z-10">
+          <div className="absolute -z-10 hidden md:block">
             {/* Visual indicator pointing to relevant UI */}
             {stepConfig.position === 'top-left' && (
               <div className="absolute top-full left-8 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-900/95" />
