@@ -8,6 +8,7 @@ interface AuthContextType {
     isAdmin: boolean;
     loading: boolean;
     signIn: (email: string) => Promise<{ error: any }>;
+    signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
     signOut: () => Promise<void>;
     verifyOTP: (email: string, token: string) => Promise<{ error: any }>;
 }
@@ -92,6 +93,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error };
     };
 
+    const signInWithPassword = async (email: string, password: string) => {
+        if (!email.endsWith('@mainichi.digital')) {
+            return { error: { message: 'Only @mainichi.digital emails are authorized for admin access.' } };
+        }
+
+        const { error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+
+        return { error };
+    };
+
     const verifyOTP = async (email: string, token: string) => {
         const { error } = await supabase.auth.verifyOtp({
             email,
@@ -108,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, session, isAdmin, loading, signIn, signOut, verifyOTP }}>
+        <AuthContext.Provider value={{ user, session, isAdmin, loading, signIn, signInWithPassword, signOut, verifyOTP }}>
             {children}
         </AuthContext.Provider>
     );

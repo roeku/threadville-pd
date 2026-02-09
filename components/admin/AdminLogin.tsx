@@ -5,10 +5,12 @@ import { useAuth } from '../../contexts/AuthContext';
 export default function AdminLogin({ onCancel }: { onCancel: () => void }) {
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
+    const [password, setPassword] = useState('');
     const [step, setStep] = useState<'email' | 'otp'>('email');
+    const [mode, setMode] = useState<'otp' | 'password'>('otp');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const { signIn, verifyOTP } = useAuth();
+    const { signIn, verifyOTP, signInWithPassword } = useAuth();
 
     const handleSendOTP = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,6 +42,20 @@ export default function AdminLogin({ onCancel }: { onCancel: () => void }) {
         // If successful, AuthContext will handle the redirect
     };
 
+    const handlePasswordLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        const { error } = await signInWithPassword(email, password);
+
+        if (error) {
+            setError(error.message || 'Invalid email or password');
+        }
+        setLoading(false);
+        // If successful, AuthContext will handle the redirect
+    };
+
     return (
         <div className="w-full h-full flex items-center justify-center bg-slate-950 text-slate-100 p-8">
             <div className="max-w-md w-full space-y-8">
@@ -58,7 +74,100 @@ export default function AdminLogin({ onCancel }: { onCancel: () => void }) {
                 </div>
 
                 <div className="bg-slate-900 border border-slate-800 rounded-lg p-8 shadow-2xl">
-                    {step === 'email' ? (
+                    <div className="flex items-center justify-center gap-2 mb-6">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMode('otp');
+                                setStep('email');
+                                setError('');
+                            }}
+                            className={`px-3 py-1 text-xs uppercase tracking-widest font-bold rounded ${
+                                mode === 'otp'
+                                    ? 'bg-amber-500 text-slate-950'
+                                    : 'bg-slate-950 text-slate-400 border border-slate-800'
+                            }`}
+                        >
+                            Email Code
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMode('password');
+                                setStep('email');
+                                setError('');
+                            }}
+                            className={`px-3 py-1 text-xs uppercase tracking-widest font-bold rounded ${
+                                mode === 'password'
+                                    ? 'bg-amber-500 text-slate-950'
+                                    : 'bg-slate-950 text-slate-400 border border-slate-800'
+                            }`}
+                        >
+                            Password
+                        </button>
+                    </div>
+
+                    {mode === 'password' ? (
+                        <form onSubmit={handlePasswordLogin} className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-slate-300">
+                                    <Mail className="w-4 h-4 inline mr-2" />
+                                    Email Address
+                                </label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="username@mainichi.digital"
+                                    required
+                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono"
+                                />
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Only @mainichi.digital emails are authorized
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-slate-300">
+                                    <KeyRound className="w-4 h-4 inline mr-2" />
+                                    Password
+                                </label>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    required
+                                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono"
+                                />
+                            </div>
+
+                            {error && (
+                                <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm">
+                                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                    <span>{error}</span>
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full px-6 py-3 bg-amber-500 text-slate-950 font-bold rounded hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Signing in...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Shield className="w-4 h-4" />
+                                        Sign In
+                                    </>
+                                )}
+                            </button>
+                        </form>
+                    ) : step === 'email' ? (
                         <form onSubmit={handleSendOTP} className="space-y-6">
                             <div className="space-y-2">
                                 <label className="block text-sm font-medium text-slate-300">
