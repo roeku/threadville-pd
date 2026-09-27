@@ -1,0 +1,128 @@
+/* 2D landing page, shown only outside the headset. Same palette and hand
+   lettering as the in-world paper tags. */
+:root {
+  --indigo: #1b1f3b;
+  --slate: #3a4a7a;
+  --amber: #ffb347;
+  --cream: #f4ead5;
+  --vermilion: #e0503c;
+  --ink: #2b2233;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: radial-gradient(120% 90% at 50% 70%, #2a2f55 0%, var(--indigo) 55%, #0f1226 100%);
+  color: var(--cream);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  font-family: 'Caveat', 'Segoe Print', 'Bradley Hand', cursive;
+}
+
+#scene-container {
+  position: fixed;
+  inset: 0;
+}
+
+#landing {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6vh 16px 7vh;
+  pointer-events: none;
+  text-align: center;
+  transition: opacity 400ms ease;
+}
+
+body.immersive #landing {
+  opacity: 0;
+}
+
+#landing h1 {
+  margin: 0;
+  font-size: clamp(56px, 11vw, 120px);
+  font-weight: 700;
+  line-height: 0.9;
+  color: var(--cream);
+  text-shadow: 0 0 28px rgba(255, 179, 71, 0.45);
+  animation: flicker 5s infinite;
+}
+
+#landing .tagline {
+  margin: 10px 0 0;
+  font-size: clamp(22px, 3.6vw, 34px);
+  color: var(--amber);
+}
+
+.bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+#enter-button {
+  pointer-events: auto;
+  font: inherit;
+  font-size: clamp(30px, 4.6vw, 44px);
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--cream);
+  border: none;
+  padding: 10px 38px 12px;
+  border-radius: 3px;
+  transform: rotate(-2deg);
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+#enter-button:hover {
+  transform: rotate(-1deg) translateY(-2px);
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.35), 0 0 30px rgba(255, 179, 71, 0.45);
+}
+
+#enter-button:active {
+  transform: rotate(-1deg) translateY(3px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+#enter-button:focus {
+  outline: none;
+}
+
+#enter-button:focus-visible {
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35), 0 0 0 4px var(--amber);
+}
+
+#enter-button[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#enter-note,
+.fineprint {
+  margin: 0;
+  font-size: clamp(18px, 2.6vw, 24px);
+  color: rgba(244, 234, 213, 0.75);
+}
+
+@keyframes flicker {
+  0%,
+  100% {
+    text-shadow: 0 0 28px rgba(255, 179, 71, 0.45);
+  }
+  48% {
+    text-shadow: 0 0 34px rgba(255, 179, 71, 0.6);
+  }
+  52% {
+    text-shadow: 0 0 22px rgba(255, 179, 71, 0.35);
+  }
+}
